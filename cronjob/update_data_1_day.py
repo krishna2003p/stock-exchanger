@@ -6,7 +6,7 @@
             #           using concurrent threads to speed up retrieval, and saves the               #
             #           data as CSV files locally.                                                  #
             #                                                                                       #
-            #           Author: KRISHNA PRAJAPATI 😊                                                 #
+            #           Author: KRISHNA PRAJAPATI 😊                                                #
             #           Date: 2025-08-07                                                            #
             #                                                                                       #
             ########################################################################################
