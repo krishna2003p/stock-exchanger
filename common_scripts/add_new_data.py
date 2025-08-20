@@ -5,13 +5,14 @@ from breeze_connect import BreezeConnect
 import ta
 import logging
 import time
-
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from breeze_connection import multi_connect
 # Setup logging
 logging.basicConfig(level=logging.INFO)
 
 # Breeze session setup (use your own keys)
-breeze = BreezeConnect(api_key='5J9$vz7915w597@5320t39n6910bq~38')
-breeze.generate_session(api_secret='02~07j8d9r000!6G30W7mjZ9nT6674_1', session_token='52659716')
+breeze = multi_connect('SWADESHHUF')
 logging.info("✅ Breeze session established")
 
 # Paths
