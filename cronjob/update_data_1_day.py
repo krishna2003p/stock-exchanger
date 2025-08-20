@@ -22,7 +22,7 @@ import pandas as pd
 import os,sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from credentials import *
-from breeze_connection import connect_breeze
+from breeze_connection import multi_connect
 from datetime import datetime, timedelta
 import queue
 import threading
@@ -39,16 +39,19 @@ tasks = []
 
 # Current timestamp in ISO format 🕒
 time_stamp = datetime.now(timezone.utc).isoformat()[:19] + '.000Z'
-breeze = connect_breeze(API_KEY, API_SECRET, SESSION_TOKEN)
+
+breeze = multi_connect('SWADESH')
 
 
 # Date time range for fetching data 📅
 to_date = datetime.now()
-from_date = to_date - timedelta(days=30)
+from_date = to_date - timedelta(days=39)
 # print(f"This is from_date:: {from_date}")
 to_date_str = to_date.strftime('%Y-%m-%d')
 from_date_str = from_date.strftime('%Y-%m-%d')
 
+# print(f"from_date_str:: {from_date_str}")
+# sys.exit()
 
 # Directory where files are saved 💾
 home = os.path.expanduser("~")
@@ -65,8 +68,7 @@ def get_all_stocks():
     return st_code
 
 
-stock_codes = ['GLEPHA']
-# stock_codes = get_all_stocks()
+stock_codes = get_all_stocks()
 # sys.exit()
 
 # Fetch data from the API worker function 🌐

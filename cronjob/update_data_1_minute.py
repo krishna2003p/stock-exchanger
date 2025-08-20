@@ -22,7 +22,7 @@ import pandas as pd
 import os,sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from credentials import *
-from breeze_connection import connect_breeze
+from breeze_connection import multi_connect
 from datetime import datetime, timedelta
 import queue
 import threading
@@ -40,7 +40,7 @@ tasks = []
 
 # Current timestamp in ISO format 🕒
 time_stamp = datetime.now(timezone.utc).isoformat()[:19] + '.000Z'
-breeze = connect_breeze(API_KEY, API_SECRET, SESSION_TOKEN)
+breeze = multi_connect("RAMKISHANHUF")
 
 
 # Date time range for fetching data 📅
@@ -66,7 +66,6 @@ def get_all_stocks():
     return st_code
 
 
-stock_codes = ['GLEPHA']
 stock_codes = get_all_stocks()
 # sys.exit()
 
