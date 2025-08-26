@@ -2,8 +2,9 @@ import pandas as pd
 import os
 
 home = os.path.expanduser("~")
-folder_path = os.path.join(home, "Documents", "Stock_Market", "final_stock", "case4")
-output_path = os.path.join(home, "Documents", "Stock_Market", "Final_Result","master_file_case4.xlsx")
+folder_path = os.path.join(home, "Documents", "Stock_Market", "final_stock", "case6")
+output_yearly_path = os.path.join(home, "Documents", "Stock_Market", "Final_Result", "new_output", "master_file_case6_yearly.xlsx")
+output_stockwise_path = os.path.join(home, "Documents", "Stock_Market", "Final_Result", "new_output", "master_file_case6_stockwise.xlsx")
 
 
 def process_file(file_path):
@@ -19,43 +20,78 @@ def process_file(file_path):
     })
 
     df['Entry Date'] = pd.to_datetime(df['Entry Date'], dayfirst=True, errors='coerce')
-    df = df.dropna(subset=['Entry Date'])
+    df['Exit Date'] = pd.to_datetime(df['Exit Date'], dayfirst=True, errors='coerce')
+    df = df.dropna(subset=['Entry Date', 'Exit Date'])
 
-    # Extract year and create year range string like '2011-12'
-    df['YearStart'] = df['Entry Date'].dt.year
-    df['YearEnd'] = df['Entry Date'].dt.year + 1
-    df['Year'] = df['YearStart'].astype(str) + '-' + df['YearEnd'].astype(str).str[-2:]
+    df['Entry Year'] = df['Entry Date'].dt.year
+    df['Exit Year'] = df['Exit Date'].dt.year
+    
+    # How many years trade is held
+    df['Holding Years'] = df['Exit Year'] - df['Entry Year'] + 1
+    
+    # Holding profit/loss per year
+    df['Hold'] = df['Profit/Loss'] / df['Holding Years']
+    df['Hold Loss'] = df['Hold'].apply(lambda x: x if x < 0 else 0)
 
-    df['Hit Trade'] = df['Profit/Loss'] > 0
-    df['Miss Trade'] = df['Profit/Loss'] <= 0
-    df['Profit Amount'] = df['Profit/Loss'].apply(lambda x: x if x > 0 else 0)
-    df['Loss Amount'] = df['Profit/Loss'].apply(lambda x: x if x < 0 else 0)
+    stock_name = os.path.basename(file_path).replace('_backtest(58).csv', '')
+    rows = []
 
-    yearly_summary = df.groupby('Year').agg(
-        hit_trades=('Hit Trade', 'sum'),
-        miss_trades=('Miss Trade', 'sum'),
-        total_investment=('Investment', 'sum'),
+    for _, row in df.iterrows():
+        # Expand rows for each holding year
+        for year in range(row['Entry Year'], row['Exit Year'] + 1):
+            rows.append({
+                'Year': year,
+                'Hold': row['Hold'],
+                'Hold Loss': row['Hold Loss'],
+                # Trades closed in Exit Year get full flags/values; holding years have zero or False
+                'Hit Trade': (row['Profit/Loss'] > 0 and year == row['Exit Year']),
+                'Miss Trade': (row['Profit/Loss'] <= 0 and year == row['Exit Year']),
+                'Investment Entry': row['Investment'] if year == row['Entry Year'] else 0,  # Invested at Entry Year
+                'Investment Exit': row['Investment'] if year == row['Exit Year'] else 0,     # Capital returned at Exit Year
+                'Profit Amount': row['Profit/Loss'] if (row['Profit/Loss'] > 0 and year == row['Exit Year']) else 0,
+                'Loss Amount': row['Profit/Loss'] if (row['Profit/Loss'] <= 0 and year == row['Exit Year']) else 0,
+                'Trade Closed': 1 if year == row['Exit Year'] else 0,
+                'Trade Held': 1 if (year >= row['Entry Year'] and year < row['Exit Year']) else 0,
+                'Net Investment': row['Net Investment'] if year == row['Exit Year'] else 0,
+                'stocks_name': stock_name
+            })
+
+    df_expanded = pd.DataFrame(rows)
+
+    # Group by Year and Stock for stock-wise summary
+    yearly_stockwise = df_expanded.groupby(['Year', 'stocks_name']).agg(
+        total_investment_entry=('Investment Entry', 'sum'),
+        total_investment_exit=('Investment Exit', 'sum'),
         total_profit=('Profit Amount', 'sum'),
         total_loss=('Loss Amount', 'sum'),
-        trade_count=('Profit/Loss', 'count')
+        total_hold_profit=('Hold', 'sum'),
+        total_hold_loss=('Hold Loss', 'sum'),
+        total_trades_closed=('Trade Closed', 'sum'),
+        total_trades_held=('Trade Held', 'sum'),
+        hit_trades=('Hit Trade', 'sum'),
+        loss_trades=('Miss Trade', 'sum'),
+        net_investment=('Net Investment', 'sum'),
     ).reset_index()
 
-    yearly_summary['profit_ratio_pct'] = (yearly_summary['hit_trades'] / yearly_summary['trade_count']) * 100
-    yearly_summary['loss_ratio_pct'] = (yearly_summary['miss_trades'] / yearly_summary['trade_count']) * 100
+    # Calculate ROI, profit% and loss% based on total_investment_entry
+    yearly_stockwise['return_of_investment'] = (yearly_stockwise['total_profit'] / yearly_stockwise['total_investment_entry'] * 100).fillna(0)
+    yearly_stockwise['profit_pct'] = yearly_stockwise['return_of_investment']
+    yearly_stockwise['loss_pct'] = (yearly_stockwise['total_loss'] / yearly_stockwise['total_investment_entry'] * 100).fillna(0)
 
-    return yearly_summary
+    # Replace infinite or NaN where total_investment_entry is zero
+    yearly_stockwise.replace([float('inf'), float('-inf')], 0, inplace=True)
+
+    return yearly_stockwise
 
 
 def main():
     all_yearly_data = []
 
-    # folder_files = ['WABIND_backtest(58).csv']  # Replace with os.listdir(folder_path) to scan folder
     for filename in os.listdir(folder_path):
         if filename.endswith('.csv'):
             file_path = os.path.join(folder_path, filename)
             try:
                 yearly_data = process_file(file_path)
-                yearly_data['Stock_File'] = filename
                 all_yearly_data.append(yearly_data)
             except Exception as e:
                 print(f"Error processing {filename}: {e}")
@@ -63,22 +99,40 @@ def main():
     if all_yearly_data:
         combined_df = pd.concat(all_yearly_data, ignore_index=True)
 
-        final_yearly_summary = combined_df.groupby('Year').agg(
-            hit_trades=('hit_trades', 'sum'),
-            miss_trades=('miss_trades', 'sum'),
-            total_investment=('total_investment', 'sum'),
+        # 1. Year-wise aggregation across all stocks
+        yearly_summary = combined_df.groupby('Year').agg(
+            total_investment_entry=('total_investment_entry', 'sum'),
+            total_investment_exit=('total_investment_exit', 'sum'),
             total_profit=('total_profit', 'sum'),
             total_loss=('total_loss', 'sum'),
-            trade_count=('trade_count', 'sum')
+            total_hold_profit=('total_hold_profit', 'sum'),
+            total_hold_loss=('total_hold_loss', 'sum'),
+            total_trades_closed=('total_trades_closed', 'sum'),
+            total_trades_held=('total_trades_held', 'sum'),
+            hit_trades=('hit_trades', 'sum'),
+            loss_trades=('loss_trades', 'sum'),
+            net_investment=('net_investment', 'sum'),
         ).reset_index()
 
-        final_yearly_summary['profit_ratio_pct'] = (final_yearly_summary['hit_trades'] / final_yearly_summary['trade_count']) * 100
-        final_yearly_summary['loss_ratio_pct'] = (final_yearly_summary['miss_trades'] / final_yearly_summary['trade_count']) * 100
+        # Calculate overall ROI and percentages for year-wise summary
+        yearly_summary['return_of_investment'] = (yearly_summary['total_profit'] / yearly_summary['total_investment_entry'] * 100).fillna(0)
+        yearly_summary['profit_pct'] = yearly_summary['return_of_investment']
+        yearly_summary['loss_pct'] = (yearly_summary['total_loss'] / yearly_summary['total_investment_entry'] * 100).fillna(0)
 
-        print(final_yearly_summary)
+        yearly_summary.replace([float('inf'), float('-inf')], 0, inplace=True)
 
-        final_yearly_summary.to_excel(output_path, index=False)
-        print(f"Yearly analysis saved to {output_path}")
+        # 2. Stock-wise summary already prepared as combined_df
+        stockwise_summary = combined_df.copy()
+
+        print(yearly_summary)
+        print(stockwise_summary)
+
+        yearly_summary.to_excel(output_yearly_path, index=False)
+        stockwise_summary.to_excel(output_stockwise_path, index=False)
+
+        print(f"Year-wise summary saved to {output_yearly_path}")
+        print(f"Stock-wise summary saved to {output_stockwise_path}")
+
     else:
         print("No data to process.")
 
