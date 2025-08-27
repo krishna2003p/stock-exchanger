@@ -27,7 +27,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__),'..','common_scripts'))
 from enable_logging import print_log
 
 # Breeze session setup (use your own keys)
-breeze = multi_connect('SWADESHHUF')
+breeze = multi_connect('SWADESH')
 print_log(f"✅ Breeze session established")
 
 # Paths
