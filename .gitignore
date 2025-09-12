@@ -48,3 +48,5 @@ stock_web/*.tsbuildinfo
 stock_web/next-env.d.ts
 
 stock_web/src/generated/prisma/
+
+all_scripts/credentials.py
