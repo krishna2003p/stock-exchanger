@@ -1,0 +1,50 @@
+# Ignore logs and caches
+logs/
+*.log
+__pycache__/
+*.pyc
+
+# Ignore macOS system files
+.DS_Store
+
+all_scripts/logs/
+stock_web/logs/
+*.log
+
+# Ignore other temp files (adjust as needed)
+*.tmp
+*.bak
+
+
+# Ignore stock_web node/next dependencies and build files
+
+stock_web/node_modules/
+stock_web/.pnp
+stock_web/.pnp.*
+stock_web/.yarn/
+!stock_web/.yarn/patches
+!stock_web/.yarn/plugins
+!stock_web/.yarn/releases
+!stock_web/.yarn/versions
+
+stock_web/coverage/
+stock_web/.next/
+stock_web/out/
+stock_web/build/
+
+stock_web/.DS_Store
+stock_web/*.pem
+
+stock_web/npm-debug.log*
+stock_web/yarn-debug.log*
+stock_web/yarn-error.log*
+stock_web/.pnpm-debug.log*
+
+stock_web/.env*
+
+stock_web/.vercel
+
+stock_web/*.tsbuildinfo
+stock_web/next-env.d.ts
+
+stock_web/src/generated/prisma/
