@@ -1,0 +1,34 @@
+ICICI_CREDENTIALS = {
+    "VACHI":{
+        "API_KEY" : "9H0zb254hW0m8949Qs44x8n6482h804$",
+        "API_SECRET" : "3X58i5Mr764a68Ey56136499070275lA",
+        "SESSION_TOKEN" : "52903243",
+        "SESSION_KEY" : "VzAyNDQ4NDY6MzEzMDYzODI="
+    },
+    "SWADESH":{
+        "API_KEY" : "39V4*7^33)7982p154Y9248695LyOV43",
+        "API_SECRET" : "1tk467w57791I4r3li85m16n0z6@3jR4",
+        "SESSION_TOKEN" : "52812750",
+        "SESSION_KEY" : "VzAyNDQ4NDY6MzEzMDYzODI="
+    },
+    "RAMKISHAN":{
+        "API_KEY" : "8P902d52hzM1072868503DM5r3wo7u29",
+        "API_SECRET" : "6*%8b66173~V=a25uO6X!800w5923C13",
+        "SESSION_TOKEN" : "52690228",
+        "SESSION_KEY" : "VzAyNDQ4NDY6MzEzMDYzODI="
+    },
+    "RAMKISHANHUF":{
+        "API_KEY" : "E3i475_07549222H8684250362~790S_",
+        "API_SECRET" : "893K380#Y68496Up(794`49X65176365",
+        "SESSION_TOKEN" : "52812907",
+        "SESSION_KEY" : "VzAyNDQ4NDY6MzEzMDYzODI="
+    },
+    "SWADESHHUF":{
+        "API_KEY" : "5J9$vz7915w597@5320t39n6910bq~38",
+        "API_SECRET" : "02~07j8d9r000!6G30W7mjZ9nT6674_1",
+        "SESSION_TOKEN" : "52959229",
+        "SESSION_KEY" : "VzA2MjkyMTU6NjU4NjkzMjk="
+    }
+}
+
+CUSTOMER_DETAIL_URL = "https://api.icicidirect.com/breezeapi/api/v1/customerdetails"

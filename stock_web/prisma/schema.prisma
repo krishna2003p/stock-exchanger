@@ -1,0 +1,58 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model users {
+  id          Int       @id @default(autoincrement())
+  name        String    @db.VarChar(50)
+  username    String    @unique(map: "username_UNIQUE") @db.VarChar(50)
+  email       String    @unique(map: "email_UNIQUE") @db.VarChar(70)
+  mobile      String?   @default("NA") @db.VarChar(45)
+  password    String?   @db.VarChar(256)
+  role        String?   @default("User") @db.VarChar(45)
+  vendor      String?   @default("NA") @db.VarChar(45)
+  profile_img String?   @default("NA") @db.VarChar(256)
+  location    String?   @db.Text
+  bio         String?   @db.LongText
+  company     String?   @default("NA") @db.VarChar(256)
+  website     String?   @default("NA") @db.VarChar(256)
+  created_at  DateTime? @default(now()) @db.DateTime(0)
+  updated_at  DateTime? @default(now()) @db.DateTime(0)
+}
+
+model users_token {
+  id         Int       @id @default(autoincrement())
+  user_id    Int       @unique(map: "user_id_UNIQUE")
+  token      String    @db.VarChar(256)
+  created_at DateTime? @default(now()) @db.DateTime(0)
+  updated_at DateTime? @default(now()) @db.DateTime(0)
+}
+
+model users_social_details {
+  id        Int     @unique(map: "id_UNIQUE") @default(autoincrement())
+  user_id   Int     @unique(map: "user_id_UNIQUE")
+  facebook  String? @default("NA") @db.VarChar(256)
+  instagram String? @default("NA") @db.VarChar(256)
+  github    String? @default("NA") @db.VarChar(256)
+  twitter   String? @default("NA") @db.VarChar(256)
+  linkedin  String? @default("NA") @db.VarChar(256)
+  telegram  String? @default("NA") @db.VarChar(256)
+}
+
+model vendors {
+  id            Int       @unique(map: "id_UNIQUE") @default(autoincrement())
+  user_id       Int       @unique(map: "user_id_UNIQUE")
+  vendor_name   String?   @db.VarChar(45)
+  app_key       String?   @db.VarChar(256)
+  secret_key    String?   @db.VarChar(256)
+  session_key   String?   @db.VarChar(45)
+  session_token String?   @db.VarChar(256)
+  created_at    DateTime? @default(now()) @db.DateTime(0)
+  updated_at    DateTime? @default(now()) @db.DateTime(0)
+}
