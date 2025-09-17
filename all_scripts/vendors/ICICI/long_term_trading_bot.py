@@ -83,7 +83,8 @@ def get_fallback_config():
             {"left": "RSI_M", "operator": ">", "right": "58", "type": "number"},
             {"left": "open", "operator": ">", "right": "EMA_100_D", "type": "field"},
             {"left": "EMA_100_D", "operator": ">", "right": "EMA_200_D", "type": "field"},
-            {"left": "open", "operator": ">", "right": "EMA_200_W", "type": "field"}
+            {"left": "open", "operator": ">", "right": "EMA_200_W", "type": "field"},
+            {"left": "open", "operator": ">", "right": "EMA_200_M", "type": "field"}
         ],
         "exit_condition": [
             {"left": "close", "operator": "<", "right": "EMA_200_D", "type": "field"},
@@ -95,16 +96,21 @@ def evaluate_condition(condition, row):
     """Evaluate a single trading condition"""
     try:
         left_value = row[condition["left"]] if condition["left"] in row.index else None
-
+        
         if condition["type"] == "number":
             right_value = float(condition["right"])
         else:  # field type
             right_value = row[condition["right"]] if condition["right"] in row.index else None
 
-        if pd.isna(left_value) or pd.isna(right_value):
-            return False
+        if pd.isna(left_value): 
+            left_value = 0
+            print_log(f"Left Value is NA, Making 0")
+        if pd.isna(right_value):
+            right_value = 0
+            print_log(f"Right Value is NA, Making 0")
 
         operator = condition["operator"]
+
 
         if operator == ">":
             return left_value > right_value
@@ -123,9 +129,15 @@ def evaluate_condition(condition, row):
         print_log(f"❌ Error evaluating condition: {e}")
         return False
 
-def check_entry_conditions(row, entry_conditions):
+def check_entry_conditions(row, entry_conditions, symbol):
     """Check if all entry conditions are met"""
+    
     for condition in entry_conditions:
+
+        required_cols = ["RSI_D", "RSI_W", "RSI_M", "EMA_100_D", "EMA_200_D", "EMA_200_W", "open", "close"]
+        if any(pd.isna(row.get(col)) for col in required_cols):
+            print_log(f"[{symbol}] Skipping due to missing data.", level="debug")
+            return False
         if not evaluate_condition(condition, row):
             return False
     return True
@@ -171,7 +183,7 @@ def get_current_orders(breeze):
     """Get current portfolio orders"""
     try:
         today = datetime.now()
-        from_date = today.strftime("%Y-%m-%dT23:59:59.000Z")
+        from_date = (today - timedelta(days=1)).strftime("%Y-%m-%dT00:00:00.000Z")
         to_date = today.strftime("%Y-%m-%dT23:59:59.000Z")
 
         resp = breeze.get_order_list(
@@ -337,8 +349,8 @@ def update_stock_data(breeze, symbol, save_dir, interval):
 
         to_date = datetime.today()
 
-        if from_date > to_date:
-            # No new data, load existing
+        if from_date.date() >= to_date.date():
+            print_log(f"⏩ Data for {symbol} is already up to date. Skipping.")
             if os.path.exists(file_path):
                 df = pd.read_csv(file_path, parse_dates=['datetime'], index_col='datetime')
                 return df.iloc[-1] if len(df) > 0 else None
@@ -352,7 +364,7 @@ def update_stock_data(breeze, symbol, save_dir, interval):
         print_log(f"📥 Fetching data for {symbol} from {from_date.date()}")
 
         response = breeze.get_historical_data(
-            interval=interval,
+            interval="1day",
             stock_code=symbol,
             exchange_code="NSE",
             from_date=from_date_str,
@@ -362,7 +374,6 @@ def update_stock_data(breeze, symbol, save_dir, interval):
         time.sleep(2)  # Rate limiting
 
         new_data = response.get("Success", [])
-        print(f"Historical data:: {response}")
         if not new_data:
             # Load existing data if no new data
             if os.path.exists(file_path):
@@ -407,7 +418,7 @@ def main():
     """Main trading function - runs once daily with dynamic configuration"""
     print_log("🚀 Starting Dynamic Trading Bot...")
     print_log(f"📅 Trading Date: {datetime.now().strftime('%Y-%m-%d')}")
-
+    
     try:
         # Step 1: Fetch dynamic configuration from API
         config = fetch_trading_config()
@@ -457,9 +468,28 @@ def main():
                 latest_row = update_stock_data(breeze, symbol, save_dir, interval)
                 if latest_row is None:
                     continue
+                to_date = datetime.today()
+                to_date_str = to_date.strftime("%Y-%m-%dT15:30:00.000Z")
+                from_date_str = to_date.strftime("%Y-%m-%dT09:30:00.000Z")
+                response = breeze.get_historical_data(
+                    interval=interval,
+                    stock_code=symbol,
+                    exchange_code="NSE",
+                    from_date=from_date_str,
+                    to_date=to_date_str
+                )
 
-                closing_price = latest_row['close']
+                time.sleep(2)  # Rate limiting
 
+                new_data = response.get("Success", [])
+
+                if new_data:
+                    df = pd.DataFrame(new_data)
+                    df["datetime"] = pd.to_datetime(df["datetime"])
+                    df.sort_values("datetime", inplace=True)
+                    closing_price = float(df.iloc[-1]["close"])
+                else:
+                    closing_price = latest_row['close']
                 # Skip stocks above capital limit
                 if closing_price > capital_per_stock:
                     continue

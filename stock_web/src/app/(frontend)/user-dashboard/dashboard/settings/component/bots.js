@@ -299,8 +299,18 @@ export default function TradingBots() {
   };
 
   const runbot = async () => {
-    const result = await apiCall('/run_bot', 'POST', {
-    });
+    try {
+    const response = await fetch('/api/run_bot', { method: 'POST' });
+    const data = await response.json();
+    if (data.success) {
+      console.log('Bot Output:', data.output);
+      // Update UI accordingly
+    } else {
+      console.error('Error running bot:', data.error);
+    }
+  } catch (error) {
+    console.error('Fetch error:', error);
+  }
   }
 
   // Load status on component mount

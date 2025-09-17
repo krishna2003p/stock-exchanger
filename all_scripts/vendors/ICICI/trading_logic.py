@@ -28,7 +28,7 @@ config_lock = threading.Lock()
 CONFIG = {
     "capital_per_stock": 5000,
     "is_live": True,
-    "interval": "30minute",
+    "interval": "5minute",
     "session_token": "123456",
     "user": "SWADESHHUF",
     # "symbols": ["HBLPOW", "HDFAMC", "JINSTA", "JMFINA", "LAULAB", "MININD", "ADIAMC"],
@@ -71,7 +71,8 @@ CONFIG = {
         {"left": "RSI_M", "operator": ">", "right": "58", "type": "number"},
         {"left": "open", "operator": ">", "right": "EMA_100_D", "type": "field"},
         {"left": "EMA_100_D", "operator": ">", "right": "EMA_200_D", "type": "field"},
-        {"left": "open", "operator": ">", "right": "EMA_200_W", "type": "field"}
+        {"left": "open", "operator": ">", "right": "EMA_200_W", "type": "field"},
+        {"left": "open", "operator": ">", "right": "EMA_200_M", "type": "field"}
     ],
     "exit_condition": [
         {"left": "close", "operator": "<", "right": "EMA_200_D", "type": "field"},

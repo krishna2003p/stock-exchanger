@@ -13,7 +13,7 @@ export async function middleware(request) {
     console.log("Middleware executed for: ", request.url);
     const { pathname } = request.nextUrl;
 
-    const allowedPaths = ['/api/signIn', '/api/signUp', '/api/signOut', '/api/tokenverify', '/api/contacts','/api/webhooks/facebook'];
+    const allowedPaths = ['/api/signIn', '/api/signUp', '/api/signOut', '/api/tokenverify', '/api/contacts','/api/webhooks/facebook', '/api/run_bot'];
     const allowedPathsUI = ['/join-with-us','/'];
 
     const headers = new Headers(request.headers);
