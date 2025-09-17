@@ -39,7 +39,7 @@ class SessionUpdateRequest(BaseModel):
 class ConfigRequest(BaseModel):
     stock: str = None
     capital_per_stock: float = None
-    interval: int = None
+    interval: str = None
     is_live: bool = None
 
 class ConditionRequest(BaseModel):
@@ -90,6 +90,7 @@ async def update_capital(req: ConfigRequest):
 
 @app.post("/update_interval")
 async def update_interval(req: ConfigRequest):
+    print(f"interval updated to {req.interval}")
     CONFIG['interval'] = req.interval
     return {"message": f"interval updated to {req.interval}"}
     # return await trading_logic.update_interval(req)
