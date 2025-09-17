@@ -9,6 +9,7 @@ import { FcExpand } from "react-icons/fc";
 import { IoIosArrowUp } from "react-icons/io";
 import { HiOutlineArrowsExpand } from "react-icons/hi";
 import { BiCollapse } from "react-icons/bi";
+import { VscRunAll } from "react-icons/vsc";
 
 // Static Data
 const USERS = ['VACHI', 'SWADESH', 'RAMKISHAN', 'RAMKISHANHUF', 'SWADESHHUF'];
@@ -79,7 +80,7 @@ export default function TradingBots() {
   const [botStatus, setBotStatus] = useState({
     capital_per_stock: 10000,
     is_live: false,
-    interval_seconds: 30,
+    interval: 30,
     symbols: ['ASHLEY']
   });
   
@@ -222,14 +223,14 @@ export default function TradingBots() {
   };
 
   const updateInterval = async () => {
-    const interval = parseInt(newInterval);
-    if (isNaN(interval) || interval < 1) {
-      setMessage('❌ Please enter valid interval in seconds');
+    const interval_time = parseInt(newInterval);
+    if (isNaN(interval_time) || interval_time < 1) {
+      setMessage('❌ Please enter valid interval');
       return;
     }
     
     const result = await apiCall('/update_interval', 'POST', {
-      interval_seconds: interval
+      interval: interval_time+"minute"
     });
     
     if (result) {
@@ -297,6 +298,11 @@ export default function TradingBots() {
     setExitConditions(updated);
   };
 
+  const runbot = async () => {
+    const result = await apiCall('/run_bot', 'POST', {
+    });
+  }
+
   // Load status on component mount
   useEffect(() => {
     fetchStatus();
@@ -321,14 +327,23 @@ const handleMinizeStock = () => {
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-3xl text-gray-600 font-bold flex items-center gap-3">
             <FaChartLine className="text-gray-400" />
-            Trading Bot Dashboard
+            {/* Trading Bot Dashboard */}
+            RSI WealthBot
           </h1>
           <div className="flex items-center gap-2">
-            <span>Status</span>
-            <div className={`px-4 py-2 rounded-lg font-semibold  ${
+            {/* <div className={`px-4 py-2 rounded-lg font-semibold  ${
               botStatus.is_live ? 'bg-green-600' : 'bg-red-600'
             }`}>
               {botStatus.is_live ? <MdOutlineAirplanemodeActive title="You are Active"/> : <MdOutlineAirplanemodeInactive title="You are Inactive"/>}
+            </div> */}
+
+            <div>
+            <button className={`px-4 py-2 rounded-lg font-semibold  cursor-pointer ${
+              botStatus.is_live ? 'bg-green-600' : 'bg-green-600'
+            }`}
+            onClick={runbot}>
+              { <VscRunAll title="Run"/>}
+            </button>
             </div>
 
             <div>
@@ -518,7 +533,7 @@ const handleMinizeStock = () => {
                 {/* Interval */}
                 <div>
                   <label className="block text-sm font-medium mb-2 text-gray-500">
-                    Interval (Current: {botStatus.interval_seconds}s)
+                    Interval (Current: {botStatus.interval}s)
                   </label>
                   <div className="flex gap-2">
                     <input

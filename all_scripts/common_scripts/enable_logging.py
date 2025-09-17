@@ -27,7 +27,7 @@ def _create_logger():
 
     if not logger.handlers:
         # Rotating file handler with 5MB size limit and 3 backup files
-        fh = RotatingFileHandler(log_file_path, maxBytes=5 * 1024 * 1024, backupCount=5)
+        fh = RotatingFileHandler(log_file_path, maxBytes=100 * 1024 * 1024, backupCount=100)
         fh.setLevel(logging.DEBUG)
 
         ch = logging.StreamHandler()
@@ -41,22 +41,6 @@ def _create_logger():
         logger.addHandler(ch)
 
     return logger
-
-    # if not logger.handlers:
-    #     fh = logging.FileHandler(log_file_path)
-    #     fh.setLevel(logging.DEBUG)
-
-    #     ch = logging.StreamHandler()
-    #     ch.setLevel(logging.WARNING)
-
-    #     formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-    #     fh.setFormatter(formatter)
-    #     ch.setFormatter(formatter)
-
-    #     logger.addHandler(fh)
-    #     logger.addHandler(ch)
-
-    # return logger
 
 # Create a global logger variable at import time
 _logger = _create_logger()

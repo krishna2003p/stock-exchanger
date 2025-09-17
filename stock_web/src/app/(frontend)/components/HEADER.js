@@ -35,8 +35,9 @@ export default function Header() {
         <span className="group-hover:text-white mx-2 text-green-400 text-sm sm:text-base whitespace-nowrap">User Portal</span>
         <IoIosArrowDown className="group-hover:text-green-400 text-white" size={16} />
         {/* Dropdown Menu */}
-        <div className="absolute right-0 top-full p-4 pr-12 mt-2 min-w-[140px] bg-white rounded-lg shadow-lg opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition flex flex-col z-50">
-          <div className="mb-2">
+        <div className="absolute right-0 top-full p-4 pr-12 min-w-[140px] rounded-lg shadow-lg opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition flex flex-col z-50">
+          <div className="bg-white mt-3 p-5 rounded-lg">
+            <div className="mb-2">
             <Link href="/join-with-us?mode=login" className="flex items-center px-4 py-2 hover:bg-green-100 text-green-900 rounded-t-lg transition">
               <BiLogIn className="inline mr-2" size={20} />
               <span className="font-bold">Login</span>
@@ -50,6 +51,7 @@ export default function Header() {
               <span className="font-bold">Register</span>
             </Link>
             <span className="px-4 py-2 text-xs text-gray-500 whitespace-nowrap">Start Your Journey</span>
+          </div>
           </div>
         </div>
       </div>

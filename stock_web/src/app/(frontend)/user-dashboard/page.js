@@ -1,12 +1,12 @@
 "use client";
-import { useState } from "react";
-import Sidebar from "@/app/(frontend)/components/account/SideBar";
-import Navbar from "@/app/(frontend)/components/account/NavBar";
-import Dashboard from "./dashboard";
-import WatchlistPage from "../dashboard/watchlist";
-import SettingsPage from "../dashboard/settings/settings";
 
-export default function DashboardApp() {
+import Navbar from "../components/account/NavBar";
+import Sidebar from "../components/account/SideBar";
+import DashboardCards from "./DashboardCards";
+import MarketDashboard from "./MarketDashboard";
+import { useState } from "react";
+
+export default function UserDashboardApp() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
 
@@ -17,9 +17,8 @@ export default function DashboardApp() {
         <div className="flex-1 flex flex-col">
           <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
           <Navbar darkMode={darkMode} setDarkMode={setDarkMode} />
-          {/* <WatchlistPage /> */}
-          {/* <Dashboard /> */}
-          <SettingsPage />
+          {/* <DashboardCards /> */}
+          <MarketDashboard />
         </div>
       </div>
     </div>
