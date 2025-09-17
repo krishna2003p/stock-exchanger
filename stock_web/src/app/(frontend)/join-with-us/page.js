@@ -63,7 +63,7 @@ export default function AuthPage() {
 
       setMessage("Sign up successful. Please sign in.");
       setIsSignUp(false);
-      router.push("/dashboard");
+      router.push("/user-dashboard");
     } catch (err) {
       setError(err?.message || "Sign up error");
     } finally {

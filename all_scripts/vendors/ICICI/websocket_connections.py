@@ -4,6 +4,7 @@ import os
 import pandas as pd
 from datetime import datetime
 import base64
+import traceback
 
 class BreezeWebsocketClient:
     def __init__(self, session_key, script_codes, on_tick_callback):
@@ -54,7 +55,7 @@ class BreezeWebsocketClient:
             self.subscribe_all(self.script_codes)
             print("Websocket connected and subscribed to initial scripts.")
         except Exception as e:
-            print(f"Failed to connect websocket: {e}")
+            print(f"Failed to connect websocket: {e} DetailError:: {traceback.print_exc()}")
             self._connected = False
 
     def _get_auth_from_session_key(self):
