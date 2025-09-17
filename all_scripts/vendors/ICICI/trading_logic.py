@@ -6,6 +6,7 @@ import json
 import pandas as pd
 from breeze_connection import *
 import asyncio
+from datetime import datetime, timedelta
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', 'common_scripts'))
 from enable_logging import print_log
@@ -14,17 +15,23 @@ from websocket_connections import start_websocket_in_thread
 
 # Paths
 home = os.path.expanduser("~")
-DATA_DIR = os.path.join(home, "Documents", "Stock_Market","1_SMA")
+DATA_DIR = os.path.join(home, "Documents", "Stock_Market","final_stock")
 POSITION_DIR = os.path.join(DATA_DIR, "Documents", "Stock_Market", "Positions")
 os.makedirs(POSITION_DIR, exist_ok=True)
+
+tracked_order_stocks = set()
+tracked_order_stocks_lock = threading.Lock()
 
 # Global config and lock
 config_lock = threading.Lock()
 
 CONFIG = {
     "capital_per_stock": 5000,
-    "is_live": False,
-    "interval_seconds": 30,
+    "is_live": True,
+    "interval": "30minute",
+    "session_token": "123456",
+    "user": "SWADESHHUF",
+    # "symbols": ["HBLPOW", "HDFAMC", "JINSTA", "JMFINA", "LAULAB", "MININD", "ADIAMC"],
     "symbols": ["AADHOS", "AARIND", "ABB", "ABBIND", "ABBPOW", "ACMSOL", "ACTCON", "ADATRA",
         "ADAWIL", "ADIAMC", "AEGLOG", "AFCINF", "AJAPHA", "AKUDRU", "ALKAMI", "ALKLAB",
         "ALSTD", "AMARAJ", "AMBCE", "AMIORG", "ANARAT", "APAIND", "APLAPO", "ASHLEY",
@@ -54,7 +61,7 @@ CONFIG = {
         "SHRPIS", "SHYMET", "SIEMEN", "SIGI", "SKFIND", "SOLIN", "SONBLW", "STAHEA",
         "STYABS", "SUDCHE", "SUNFAS", "SUNFIN", "SUNPHA", "SUPIND", "SWAENE", "SWILIM",
         "TATCOM", "TATELX", "TATTE", "TATTEC", "TBOTEK", "TECEEC", "TECIND", "TECMAH",
-        "TEJNET", "THERMA", "THICHE", "TATMOT", "TRILTD", "TUBIN", "TVSMOT", "UCOBAN",
+        "TEJNET", "THERMA", "THICHE", "TRILTD", "TUBIN", "TVSMOT", "UCOBAN",
         "UNIBAN", "UNIP", "UNISPI", "UTIAMC", "VARBEV", "VARTEX", "VEDFAS", "VEDLIM",
         "VIJDIA", "VISMEG", "VOLTAS", "WAAENE", "WABIND", "WELIND", "WHIIND", "WOCKHA",
         "XPRIND", "ZENTE", "ZOMLIM"],
@@ -93,11 +100,45 @@ def load_state(symbol):
         return data.get("position"), data.get("units", 0)
     return None, 0
 
+def is_stock_already_ordered(symbol):
+    """Check if stock already has an order or position"""
+    with tracked_order_stocks_lock:
+        return symbol in tracked_order_stocks
+
+def add_stock_to_tracked_orders(symbol):
+    """Add stock to tracked orders after placing order"""
+    with tracked_order_stocks_lock:
+        tracked_order_stocks.add(symbol)
+        print_log(f"✅ Added {symbol} to tracked order stocks")
+
+def remove_stock_from_tracked_orders(symbol):
+    """Remove stock from tracked orders list after selling"""
+    with tracked_order_stocks_lock:
+        tracked_order_stocks.discard(symbol)
+        print_log(f"🗑️ Removed {symbol} from tracked order stocks")
+
 def save_state(symbol, position, units):
     file_path = os.path.join(POSITION_DIR, f"{symbol}.json")
     with open(file_path, "w") as f:
         json.dump({"position": position, "units": units}, f)
     print_log(f"[{symbol}] 💾 State saved: Position={position}, Units={units}")
+
+def get_date_ranges():
+    """Get dynamic date ranges for API calls"""
+    now = datetime.now()
+    dates = {}
+    # For portfolio holdings: 2 months back to now
+    two_months_ago = now - timedelta(days=60)
+    dates['portfolio_from_date'] = two_months_ago.strftime("%Y-%m-%dT06:00:00.000Z")
+    dates['portfolio_to_date'] = now.strftime("%Y-%m-%dT23:59:59.000Z")
+    
+    # For order list: today only  
+    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    today_end = now.replace(hour=23, minute=59, second=59, microsecond=999000)
+    dates['order_from_date'] = today_start.strftime("%Y-%m-%dT%H:%M:%S.000Z")
+    dates['order_to_date'] = today_end.strftime("%Y-%m-%dT%H:%M:%S.000Z")
+    return dates
+
 
 def sync_broker_position(symbol):
     """Sync position from broker portfolio - improved version"""
@@ -106,8 +147,42 @@ def sync_broker_position(symbol):
         if not breeze:
             print_log(f"[{symbol}] Breeze client not available for portfolio sync", level="warning")
             return None, 0
+        dates = get_date_ranges()
+        # resp = None
+        try:
+            resp = breeze.get_portfolio_holdings(exchange_code="NSE",
+                    from_date=dates['portfolio_from_date'], 
+                    to_date=dates['portfolio_to_date'], 
+                    stock_code="", 
+                    portfolio_type="")
+        except Exception as api_error:
+            print_log(f"❌ Failed to get portfolio holdings: {api_error} DetailError:: {traceback.print_exc()} ", level="error")
+            return  # Skip this sync cycle
+        
+        try:
+            orders = breeze.get_order_list(exchange_code="NSE",
+                      from_date=dates['order_from_date'],
+                      to_date=dates['order_to_date'])
+        except Exception as api_error:
+            print_log(f"❌ Failed to get order list: {api_error} DetailError:: {traceback.print_exc()} ", level="warning")
+            orders = {"Success": []}
+
+        with tracked_order_stocks_lock:
+            # tracked_order_stocks.clear()
             
-        resp = breeze.get_portfolio_positions()
+            # Add stocks from positions
+            if resp.get("Success"):
+                for pos in resp["Success"]:
+                    if pos.get("stock_code"):
+                        tracked_order_stocks.add(pos["stock_code"])
+            
+            # Add stocks from pending/executed orders
+            if orders.get("Success"):
+                for order in orders["Success"]:
+                    if order.get("stock_code") and order.get("status") in ["ORDERED", "EXECUTED"]:
+                        tracked_order_stocks.add(order["stock_code"])
+
+
         if resp.get("Success") is None:
             print_log(f"[{symbol}] No portfolio data received from broker", level="debug")
             return None, 0
@@ -143,12 +218,47 @@ def sync_all_portfolio_positions():
             return
             
         print_log("🔄 Syncing all portfolio positions from broker...")
-        resp = breeze.get_portfolio_positions()
+        dates = get_date_ranges()
+
+        try:
+            resp = breeze.get_portfolio_holdings(exchange_code="NSE",
+                    from_date=dates['portfolio_from_date'], 
+                    to_date=dates['portfolio_to_date'], 
+                    stock_code="", 
+                    portfolio_type="")
+        except Exception as api_error:
+            print_log(f"❌ Failed to get portfolio holdings: {api_error}, DetailError:: {traceback.print_exc()}", level="error")
+            return  # Skip this sync cycle
+        
+        try:
+            orders = breeze.get_order_list(exchange_code="NSE",
+                      from_date=dates['order_from_date'],
+                      to_date=dates['order_to_date'])
+        except Exception as api_error:
+            print_log(f"❌ Failed to get order list: {api_error}, DetailError:: {traceback.print_exc()}", level="warning")
+            orders = {"Success": []}
         
         if resp.get("Success") is None:
             print_log("No portfolio data received from broker", level="warning")
             return
         
+
+        with tracked_order_stocks_lock:
+            # tracked_order_stocks.clear()
+            
+            # Add stocks from positions
+            if resp.get("Success"):
+                for pos in resp["Success"]:
+                    if pos.get("stock_code"):
+                        tracked_order_stocks.add(pos["stock_code"])
+            
+            # Add stocks from pending/executed orders
+            if orders.get("Success"):
+                print_log(f"Ordered Data :: {orders}")
+                for order in orders["Success"]:
+                    if order.get("stock_code") and order.get("status") in ["Ordered", "Executed"]:
+                        tracked_order_stocks.add(order["stock_code"])
+
         # Update positions for all tracked symbols
         with config_lock:
             for symbol in symbol_states.keys():
@@ -180,7 +290,7 @@ def sync_all_portfolio_positions():
         print_log("✅ Portfolio sync completed")
         
     except Exception as e:
-        print_log(f"Error syncing portfolio positions: {e}", level="error")
+        print_log(f"Error syncing portfolio positions: {e} ", level="error")
 
 def evaluate_condition(condition, row):
     """Evaluate a single condition against a row of data"""
@@ -239,10 +349,6 @@ def check_strategy(symbol, row):
         print_log(f"[{symbol}] Skipping due to missing data.", level="debug")
         return
 
-    # Sync with broker position periodically if live trading
-    if is_live and time.time() - last_portfolio_sync > PORTFOLIO_SYNC_INTERVAL:
-        sync_all_portfolio_positions()
-
     # Re-check current position after potential sync
     with config_lock:
         current_position = symbol_states[symbol].get("position")
@@ -251,10 +357,15 @@ def check_strategy(symbol, row):
     # ENTRY LOGIC - Only buy if we don't have a LONG position
     if current_position != "LONG":
         # Evaluate all entry conditions (ALL must be true)
+        print_log(f"For purchaseing symbol position:: {symbol_states[symbol]["position"]}")
         entry_condition_met = all(evaluate_condition(condition, row) for condition in entry_conditions)
         
         if entry_condition_met:
             # Double-check with broker if live trading
+            if is_stock_already_ordered(symbol):
+                print_log(f"[{symbol}] ⚠️ Already ordered/positioned. Skipping duplicate order.")
+                return
+            
             if is_live:
                 broker_position, broker_units = sync_broker_position(symbol)
                 if broker_position == "LONG":
@@ -268,34 +379,37 @@ def check_strategy(symbol, row):
             
             # Calculate units to buy
             units = max(1, int(capital / max(row.get("open", 1), 1)))  # At least 1 unit
+
+            add_stock_to_tracked_orders(symbol)
             
             print_log(f"[{symbol}] 📈 Entry conditions met. Buying {units} units @ {row.get('close', 0):.2f}, Current Position: {current_position}")
+            print_log(f"After purchased symbol position:: {symbol_states[symbol]["position"]}, units:: {symbol_states[symbol]["units"]}")
             
             # Place buy order if live trading
             if is_live and breeze:
                 try:
-                    resp = breeze.place_order(
-                        stock_code=symbol,
-                        exchange_code="NSE",
-                        product="cash",
-                        action="buy",
-                        order_type="limit",
-                        stoploss="",
-                        quantity=str(units),
-                        price=str(row.get("close", 0)),
-                        validity="day"
-                    )
-                    print_log(f"[{symbol}] 📊 Buy order placed: {resp}")
+                    # resp = breeze.place_order(
+                    #     stock_code=symbol,
+                    #     exchange_code="NSE",
+                    #     product="cash",
+                    #     action="buy",
+                    #     order_type="limit",
+                    #     stoploss="",
+                    #     quantity=str(units),
+                    #     price=str(row.get("close", 0)),
+                    #     validity="day"
+                    # )
+                    print_log(f"[{symbol}] 📊 Buy order placed: ")
                     
                     # Only update position if order was successful
-                    if resp.get("Success"):
-                        with config_lock:
-                            symbol_states[symbol]["position"] = "LONG"
-                            symbol_states[symbol]["units"] = units
-                        save_state(symbol, "LONG", units)
-                        print_log(f"[{symbol}] ✅ Position updated after successful buy order")
-                    else:
-                        print_log(f"[{symbol}] ❌ Buy order failed: {resp}")
+                    # if resp.get("Success"):
+                    #     with config_lock:
+                    #         symbol_states[symbol]["position"] = "LONG"
+                    #         symbol_states[symbol]["units"] = units
+                    #     save_state(symbol, "LONG", units)
+                    #     print_log(f"[{symbol}] ✅ Position updated after successful buy order")
+                    # else:
+                    #     print_log(f"[{symbol}] ❌ Buy order failed: {resp}")
                         
                 except Exception as e:
                     print_log(f"[{symbol}] Failed to place buy order: {e}", level="error")
@@ -319,28 +433,33 @@ def check_strategy(symbol, row):
             # Place sell order if live trading
             if is_live and breeze:
                 try:
-                    resp = breeze.place_order(
-                        stock_code=symbol,
-                        exchange_code="NSE",
-                        product="cash",
-                        action="sell",
-                        order_type="market",
-                        stoploss="",
-                        quantity=str(current_units),
-                        price=str(row.get("close", 0)),
-                        validity="day"
-                    )
-                    print_log(f"[{symbol}] 📊 Sell order placed: {resp}")
-                    
+                    # resp = breeze.place_order(
+                    #     stock_code=symbol,
+                    #     exchange_code="NSE",
+                    #     product="cash",
+                    #     action="sell",
+                    #     order_type="market",
+                    #     stoploss="",
+                    #     quantity=str(current_units),
+                    #     price=str(row.get("close", 0)),
+                    #     validity="day"
+                    # )
+                    print_log(f"[{symbol}] 📊 Sell order placed: ")
+                    remove_stock_from_tracked_orders(symbol)
                     # Only update position if order was successful
-                    if resp.get("Success"):
-                        with config_lock:
-                            symbol_states[symbol]["position"] = None
-                            symbol_states[symbol]["units"] = 0
-                        save_state(symbol, None, 0)
-                        print_log(f"[{symbol}] ✅ Position cleared after successful sell order")
-                    else:
-                        print_log(f"[{symbol}] ❌ Sell order failed: {resp}")
+                    # with config_lock:
+                    #     symbol_states[symbol]["position"] = None
+                    #     symbol_states[symbol]["units"] = 0
+                    #     save_state(symbol, None, 0)
+                    #     print_log(f"[{symbol}] ✅ Position cleared after successful sell order")
+                    # if resp.get("Success"):
+                    #     with config_lock:
+                    #         symbol_states[symbol]["position"] = None
+                    #         symbol_states[symbol]["units"] = 0
+                    #     save_state(symbol, None, 0)
+                    #     print_log(f"[{symbol}] ✅ Position cleared after successful sell order")
+                    # else:
+                    #     print_log(f"[{symbol}] ❌ Sell order failed: {resp}")
                         
                 except Exception as e:
                     print_log(f"[{symbol}] Failed to place sell order: {e}", level="error")
@@ -362,8 +481,8 @@ def initialize_websocket_feeds(session_key, script_codes, on_ticks):
 
 def on_ticks(tick):
     symbol = tick.get("stock_code")
-    print(f"Data are comming from websocket: {tick}")
-    print_log(f"Data are comming from websocket: {tick}")
+    # print(f"Data are comming from websocket: {tick}")
+    # print_log(f"Data are comming from websocket: {tick}")
     with config_lock:
         if symbol not in symbol_states:
             return
@@ -388,6 +507,7 @@ async def update_session(req):
     global breeze
     user = req.user
     session_token = req.session_token
+    CONFIG['session_token'] = session_token
 
     allowed_users = ['VACHI','SWADESH','RAMKISHAN','RAMKISHANHUF','SWADESHHUF']
     if user not in allowed_users:
@@ -401,6 +521,7 @@ async def update_session(req):
             # breeze.on_ticks = on_ticks
             # breeze.ws_connect()
             stock_codes = CONFIG.get("symbols")
+            session_token = ICICI_CREDENTIALS[user]['SESSION_KEY']
             initialize_websocket_feeds(session_token, stock_codes, on_ticks)
             print_log(f"Breeze client connected for user: {user}")
             
@@ -445,10 +566,11 @@ async def add_stock(req):
         # Subscribe to websocket feed
         session_token = ICICI_CREDENTIALS["SWADESHHUF"]["SESSION_KEY"]
         stock_codes = CONFIG.get("symbols")
-        initialize_websocket_feeds(session_token, stock_codes, on_ticks)
+        initialize_websocket_feeds(session_token, [stock], on_ticks)
 
         # Subscribe to breeze feed
         user = "SWADESHHUF"
+        interval = CONFIG['interval']
         if user in breeze_clients:
             client = breeze_clients[user]
             client.subscribe_feeds(
@@ -457,6 +579,7 @@ async def add_stock(req):
                 expiry_date="",
                 strike_price="",
                 right="",
+                interval=interval,
                 product_type="cash",
                 get_market_depth=False,
                 get_exchange_quotes=True
@@ -495,13 +618,13 @@ async def update_capital(req):
 
 async def update_interval(req):
     print_log(f"Call update_interval function Payload:: {req}")
-    if req.interval_seconds is None:
-        return {"status_code":400, "detail":"Missing 'interval_seconds' field"}
+    if req.interval is None:
+        return {"status_code":400, "detail":"Missing 'interval' field"}
 
     with config_lock:
-        CONFIG["interval_seconds"] = req.interval_seconds
+        CONFIG["interval"] = req.interval
 
-    return {"message": f"interval_seconds updated to {req.interval_seconds}"}
+    return {"message": f"interval updated to {req.interval}"}
 
 async def update_is_live(req):
     print_log(f"Call update_is_live function Payload:: {req}")
@@ -561,6 +684,7 @@ async def lifespan_setup():
         global breeze
         breeze = multi_connect(user)
         session_token = ICICI_CREDENTIALS[user]['SESSION_KEY']
+        CONFIG['session_token'] = ICICI_CREDENTIALS[user]['SESSION_TOKEN']
         if breeze:
             breeze_clients[user] = breeze
             print_log(f"Connected Breeze for user {user}")
@@ -634,7 +758,7 @@ async def lifespan_setup():
                 # Periodic portfolio sync
                 if CONFIG.get("is_live", False):
                     sync_all_portfolio_positions()
-                time.sleep(60)  # Check every minute
+                time.sleep(20)  # Check every minute
             except Exception as e:
                 print_log(f"Background worker error: {e}", level="error")
                 time.sleep(5)

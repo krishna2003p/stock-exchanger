@@ -14,7 +14,7 @@ import { FaDatabase as DataIcon } from "react-icons/fa";
 import { FaPlug as ConnectionsIcon } from "react-icons/fa";
 import Sidebar from "@/app/(frontend)/components/account/SideBar";
 import Navbar from "@/app/(frontend)/components/account/NavBar";
-import SettingSidebar from "./sidebar";
+// import SettingSidebar from "./sidebar";
 // import { cookies } from "next/headers";
 
 function getCookie(name) {
@@ -181,7 +181,7 @@ export default function SettingsPage() {
       <div className="mx-18 p-6">
         <div className="grid grid-cols-12 gap-6">
           {/* Sidebar omitted for brevity */}
-          <SettingSidebar />
+          {/* <SettingSidebar /> */}
 
           {/* Content */}
           <section className="col-span-12 md:col-span-9">

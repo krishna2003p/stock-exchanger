@@ -1,11 +1,11 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { FaSearch, FaMoon, FaSun, FaWallet } from "react-icons/fa";
 import { IoMdNotificationsOutline } from "react-icons/io";
 import { IoIosArrowDown } from "react-icons/io";
 import Image from "next/image";
 import { IoSettingsOutline } from "react-icons/io5";
 import { IoMdLogOut } from "react-icons/io";
-import { useRouter } from 'next/navigation';
+import { useGoTo } from "../../hooks/RenderHook";
 import { ImProfile } from "react-icons/im";
 
 export default function Navbar({ darkMode, setDarkMode, sidebarOpen }) {
@@ -13,7 +13,10 @@ export default function Navbar({ darkMode, setDarkMode, sidebarOpen }) {
   const [walletOpen, setWalletOpen] = useState(false);
   const profileRef = useRef();
   const walletRef = useRef();
-  const router = useRouter();
+  const goTo = useGoTo();
+
+  // Push to path
+  const handleSettings = useCallback(() => goTo("/user-dashboard/dashboard/settings/"), [goTo]);
 
   // Close dropdowns on click outside
   useEffect(() => {
@@ -29,16 +32,16 @@ export default function Navbar({ darkMode, setDarkMode, sidebarOpen }) {
     return () => document.removeEventListener("mousedown", handle);
   }, []);
 
-//   Handle logout
+// Handle logout
 async function handleLogout() {
   try {
-    await fetch('/api/signOut', { method: 'POST' }); // same-origin; includes will auto-apply Set-Cookie
-    router.push('/');
-    // router.refresh(); // optional to revalidate client state
+    await fetch('/api/signOut', { method: 'POST' }); 
+    goTo('/')
   } catch (e) {
-    router.push('/');
+    goTo('/')
   }
 }
+
 
   return (
     <header
@@ -124,6 +127,7 @@ async function handleLogout() {
               <button
                 className="w-full text-left px-4 py-2 text-sm hover:bg-green-50 text-gray-700"
                 tabIndex={0}
+                onClick={handleSettings}
               >
                 <div className="inline-block mr-2 mt-1 cursor-pointer">
                   <IoSettingsOutline className="inline mr-2" size={16} />

@@ -79,9 +79,10 @@ export async function middleware(request) {
                 // Redirect based on user type if not already on the respective dashboard
                 if (decoded.type === 'Admin' && pathname !== '/admin/dashboard') {
                     return NextResponse.redirect(new URL('/admin/dashboard', request.url));
-                } else if (decoded.type === 'User' && pathname !== '/dashboard') {
-                    return NextResponse.redirect(new URL('/dashboard', request.url));
-                }
+                } 
+                // else if (decoded.type === 'User' && pathname !== '/dashboard') {
+                //     return NextResponse.redirect(new URL('/dashboard', request.url));
+                // }
             } else {
                 // Redirect to login if verification fails
                 if (pathname !== '/join-with-us') {
@@ -100,5 +101,5 @@ export async function middleware(request) {
 }
 
 export const config = {
-    matcher: ['/api/:path*', '/user-dashboard/:path*', ],
+    matcher: ['/api/:path*', '/dashboard/:path*', ],
 };

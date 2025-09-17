@@ -1,17 +1,4 @@
-    #########################################################################################
-    #                                                                                       #
-    #           📊 Nifty 500 Historical 1-Day Data Fetcher and Saver  📈                     #
-    #           This script fetches 1-Day interval historical trading data                  #
-    #           for Nifty 500 stocks over the past 18 years from a Breeze API,              #
-    #           using concurrent threads to speed up retrieval, and saves the               #
-    #           data as CSV files locally.                                                  #
-    #                                                                                       #
-    #           Author: KRISHNA PRAJAPATI 😊                                                #
-    #           Date: 2025-08-07                                                            #
-    #                                                                                       #
-    ########################################################################################
-
-import os
+import os, sys
 import pandas as pd
 from datetime import datetime, timedelta
 from breeze_connect import BreezeConnect
@@ -23,22 +10,275 @@ import traceback
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from breeze_connection import multi_connect
 
-sys.path.append(os.path.join(os.path.dirname(__file__),'..','common_scripts'))
-from enable_logging import print_log
+# sys.path.append()
+
+# Setup logging
+logging.basicConfig(level=logging.INFO)
 
 # Breeze session setup (use your own keys)
-breeze = multi_connect('SWADESHHUF')
-print_log(f"✅ Breeze session established")
+breeze = multi_connect("SWADESHHUF")
+logging.info("✅ Breeze session established")
 
 # Paths
-home = os.path.expanduser("~")
-data_dir = os.path.join(home,"Documents","Stock_Market")
-symbol_file_path = os.path.join(data_dir,"common_csv","nifty_500_stock_code.csv")
-symbols_df = pd.read_csv(symbol_file_path)
-symbols = symbols_df['ShortName'].dropna().unique()
+data_dir = os.path.join(os.path.expanduser("~"),"Documents","Stock_Market","final_stock")
+symbols =["AADHOS", "AARIND", "ABB", "ABBIND", "ABBPOW", "ACMSOL",
+"ACTCON",
+"ADATRA",
+"ADAWIL",
+"ADIAMC",
+"AEGLOG",
+"AFCINF",
+"AJAPHA",
+"AKUDRU",
+"ALKAMI",
+"ALKLAB",
+"ALSTD",
+"AMARAJ",
+"AMBCE",
+"AMIORG",
+"ANARAT",
+"APAIND",
+"APLAPO",
+"ASHLEY",
+"ASTDM",
+"ASTPOL",
+"ATUL",
+"BAJHOU",
+"BALCHI",
+"BANBAN",
+"BASF",
+"BHADYN",
+"BHAELE",
+"BHAFOR",
+"BHAHEX",
+"BIKFOO",
+"BIRCOR",
+"BLUDAR",
+"BOMBUR",
+"BRASOL",
+"BRIENT",
+"BSE",
+"CADHEA",
+"CAMACT",
+"CAPPOI",
+"CAREVE",
+"CCLPRO",
+"CDSL",
+"CEINFO",
+"CERSAN",
+"CHEPET",
+"CITUNI",
+"CLESCI",
+"COALIN",
+"COCSHI",
+"CONBIO",
+"CRAAUT",
+"CROGR",
+"CROGRE",
+"CYILIM",
+"DATPAT",
+"DCMSHR",
+"DEEFER",
+"DELLIM",
+"DIVLAB",
+"DOMIND",
+"DRLAL",
+"ECLSER",
+"EIDPAR",
+"EMALIM",
+"EMCPHA",
+"ENDTEC",
+"ESCORT",
+"EXIIND",
+"FDC",
+"FINCAB",
+"FIRSOU",
+"FSNECO",
+"GAIL",
+"GARREA",
+"GIC",
+"GLAPH",
+"GLELIF",
+"GLEPHA",
+"GLOHEA",
+"GODIGI",
+"GODPRO",
+"GOKEXP",
+"GRAVIN",
+"GUJGA",
+"GUJPPL",
+"HAPMIN",
+"HBLPOW",
+"HDFAMC",
+"HILLTD",
+"HIMCHE",
+"HINAER",
+"HINCON",
+"HINCOP",
+"HINDAL",
+"HINPET",
+"HONAUT",
+"HONCON",
+"HYUMOT",
+"IIFHOL",
+"IIFWEA",
+"INDBA",
+"INDLTD",
+"INDOVE",
+"INDR",
+"INDRAI",
+"INDREN",
+"INFEDG",
+"INOIND",
+"INOWIN",
+"INTGEM",
+"INVKNO",
+"IPCLAB",
+"IRBINF",
+"IRCINT",
+"JAMKAS",
+"JBCHEM",
+"JBMAUT",
+"JINSAW",
+"JINSP",
+"JINSTA",
+"JIOFIN",
+"JKCEME",
+"JMFINA",
+"JSWENE",
+"JSWHOL",
+"JSWINF",
+"JYOCNC",
+"KALJEW",
+"KALPOW",
+"KANNER",
+"KARVYS",
+"KAYTEC",
+"KCPLTD",
+"KECIN",
+"KFITEC",
+"KIRBRO",
+"KIRENG",
+"KPITE",
+"KPITEC",
+"KPRMIL",
+"KRIINS",
+"LATVIE",
+"LAULAB",
+"LEMTRE",
+"LIC",
+"LININ",
+"LLOMET",
+"LTOVER",
+"LTTEC",
+"MAPHA",
+"MCX",
+"MININD",
+"MOLPAC",
+"MOTOSW",
+"MOTSU",
+"MUTFIN",
+"NARHRU",
+"NATALU",
+"NATPHA",
+"NETTEC",
+"NEULAB",
+"NEWSOF",
+"NHPC",
+"NIVBUP",
+"NOCIL",
+"NTPGRE",
+"NUVWEA",
+"OBEREA",
+"OLAELE",
+"ORAFIN",
+"ORIREF",
+"PAGIND",
+"PBFINT",
+"PEAGL",
+"PERSYS",
+"PGELEC",
+"PHICAR",
+"PHOMIL",
+"PIRPHA",
+"POLI",
+"PREENR",
+"PREEST",
+"PVRLIM",
+"RAICHI",
+"RAICOR",
+"RAIVIK",
+"RAMFOR",
+"RATINF",
+"RAYLIF",
+"RELNIP",
+"RENSUG",
+"RITLIM",
+"ROUMOB",
+"RRKAB",
+"RUCSOY",
+"RURELE",
+"SAIL",
+"SAILIF",
+"SAREIN",
+"SARENE",
+"SBFFIN",
+"SCHELE",
+"SHIME",
+"SHRPIS",
+"SHYMET",
+"SIEMEN",
+"SIGI",
+"SKFIND",
+"SOLIN",
+"SONBLW",
+"STAHEA",
+"STYABS",
+"SUDCHE",
+"SUNFAS",
+"SUNFIN",
+"SUNPHA",
+"SUPIND",
+"SWAENE",
+"SWILIM",
+"TATCOM",
+"TATELX",
+"TATTE",
+"TATTEC",
+"TBOTEK",
+"TECEEC",
+"TECIND",
+"TECMAH",
+"TEJNET",
+"THERMA",
+"THICHE",
+"TATMOT",
+"TRILTD",
+"TUBIN",
+"TVSMOT",
+"UCOBAN",
+"UNIBAN",
+"UNIP",
+"UNISPI",
+"UTIAMC",
+"VARBEV",
+"VARTEX",
+"VEDFAS",
+"VEDLIM",
+"VIJDIA",
+"VISMEG",
+"VOLTAS",
+"WAAENE",
+"WABIND",
+"WELIND",
+"WHIIND",
+"WOCKHA",
+"XPRIND",
+"ZENTE",
+"ZOMLIM"]
 
 # Define folder structure and ensure directories exist
-save_dir = os.path.join(data_dir, "nifty_500", "1_day_data")
+save_dir = os.path.join(data_dir,"1_SMA")
 os.makedirs(save_dir, exist_ok=True)
 
 for symbol in symbols:
@@ -57,14 +297,14 @@ for symbol in symbols:
         to_date = datetime.today()
 
         if from_date > to_date:
-            print_log(f"No new data to fetch for {symbol}.")
+            logging.info(f"No new data to fetch for {symbol}.")
             continue
 
         # Format dates for API
         from_date_str = from_date.strftime("%Y-%m-%dT09:15:00.000Z")
         to_date_str = to_date.strftime("%Y-%m-%dT15:30:00.000Z")
 
-        print_log(f"📥 Fetching new data for {symbol} from {from_date.date()} to {to_date.date()}")
+        logging.info(f"📥 Fetching new data for {symbol} from {from_date.date()} to {to_date.date()}")
 
         response = breeze.get_historical_data(
             interval="1day",
@@ -73,11 +313,11 @@ for symbol in symbols:
             from_date=from_date_str,
             to_date=to_date_str
         )
-        time.sleep(2)  # throttle a bit to avoid rate limit
+        time.sleep(.25)  # throttle a bit to avoid rate limit
 
         new_data = response.get("Success", [])
         if not new_data:
-            print_log(f"No new data available for {symbol} in this range.")
+            logging.info(f"No new data available for {symbol} in this range.")
             continue
 
         new_df = pd.DataFrame(new_data)
@@ -105,6 +345,8 @@ for symbol in symbols:
         combined_df["EMA_50_D"] = ta.trend.EMAIndicator(combined_df["close"], window=50).ema_indicator()
         combined_df["EMA_100_D"] = ta.trend.EMAIndicator(combined_df["close"], window=100).ema_indicator()
         combined_df["EMA_200_D"] = ta.trend.EMAIndicator(combined_df["close"], window=200).ema_indicator()
+        combined_df["SMA_100_D"] = ta.trend.SMAIndicator(combined_df["close"], window=100).sma_indicator()
+        combined_df["SMA_200_D"] = ta.trend.SMAIndicator(combined_df["close"], window=200).sma_indicator()
 
         # Weekly indicators
         weekly = combined_df.resample("W").agg({
@@ -119,7 +361,9 @@ for symbol in symbols:
         weekly["EMA_50_W"] = ta.trend.EMAIndicator(weekly["close"], window=50).ema_indicator()
         weekly["EMA_100_W"] = ta.trend.EMAIndicator(weekly["close"], window=100).ema_indicator()
         weekly["EMA_200_W"] = ta.trend.EMAIndicator(weekly["close"], window=200).ema_indicator()
-        weekly_indicators = weekly.filter(like="RSI").join(weekly.filter(like="EMA")).reindex(combined_df.index, method="ffill")
+        weekly["SMA_100_W"] = ta.trend.SMAIndicator(weekly["close"], window=100).sma_indicator()
+        weekly["SMA_200_W"] = ta.trend.SMAIndicator(weekly["close"], window=200).sma_indicator()
+        weekly_indicators = weekly.filter(like="RSI").join(weekly.filter(like="EMA")).join(weekly.filter(like="SMA")).reindex(combined_df.index, method="ffill")
 
         # Monthly indicators
         monthly = combined_df.resample("ME").agg({
@@ -134,18 +378,20 @@ for symbol in symbols:
         monthly["EMA_50_M"] = ta.trend.EMAIndicator(monthly["close"], window=50).ema_indicator()
         monthly["EMA_100_M"] = ta.trend.EMAIndicator(monthly["close"], window=100).ema_indicator()
         monthly["EMA_200_M"] = ta.trend.EMAIndicator(monthly["close"], window=200).ema_indicator()
-        monthly_indicators = monthly.filter(like="RSI").join(monthly.filter(like="EMA")).reindex(combined_df.index, method="ffill")
+        monthly["SMA_100_M"] = ta.trend.SMAIndicator(monthly["close"], window=100).sma_indicator()
+        monthly["SMA_200_M"] = ta.trend.SMAIndicator(monthly["close"], window=200).sma_indicator()
+        monthly_indicators = monthly.filter(like="RSI").join(monthly.filter(like="EMA")).join(monthly.filter(like="SMA")).reindex(combined_df.index, method="ffill")
 
         # Combine all
         final_df = pd.concat([
-            combined_df[["open", "high", "low", "close", "volume", "RSI_D", "EMA_50_D", "EMA_100_D", "EMA_200_D"]],
+            combined_df[["open", "high", "low", "close", "volume", "RSI_D", "EMA_50_D", "EMA_100_D", "EMA_200_D", "SMA_100_D", "SMA_200_D"]],
             weekly_indicators,
             monthly_indicators
         ], axis=1)
 
         # Save back to CSV
         final_df.to_csv(file_path)
-        print_log(f"✅ Updated and saved data for {symbol}")
+        logging.info(f"✅ Updated and saved data for {symbol}")
 
     except Exception as e:
-        print_log(f"❌ Error processing {symbol}: Error:: {e}, Detail Error:: {traceback.print_exc()}")
+        logging.error(f"❌ Error processing {symbol}: {e}")

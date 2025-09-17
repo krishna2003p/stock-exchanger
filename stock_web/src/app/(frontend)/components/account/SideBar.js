@@ -9,7 +9,7 @@ import {
   FaCog,
   FaSignOutAlt,
 } from "react-icons/fa";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { FaBoxesStacked } from "react-icons/fa6";
@@ -20,11 +20,11 @@ import { FaList } from "react-icons/fa6";
 import { useRouter } from 'next/navigation';
 import { TbMoneybag } from "react-icons/tb";
 import { TbBrandGoogleAnalytics } from "react-icons/tb";
-
+import { useGoTo } from "../../hooks/RenderHook";
 
 // Submenu items (shared for Stocks, F&O, Commodity)
 const subMenus = [
-    {icon: <FaList />, label: "Watchlist"},
+  {icon: <FaList />, label: "Watchlist"},
   {icon: <TbWalletOff />, label: "Portfolio"},
   {icon: <FaFirstOrder />, label: "Place Order"},
   {icon: <FaGoogleWallet />, label: "Open Position"},
@@ -34,16 +34,41 @@ const subMenus = [
 
 export default function Sidebar({ sidebarOpen, setSidebarOpen }) {
   const [openSub, setOpenSub] = useState(""); // Track open submenu
-   const router = useRouter();
+  const router = useRouter();
+  const goTo = useGoTo();
+
+  // Navigation handlers
+  const handleDashboard = useCallback(() => goTo("/user-dashboard/dashboard"), [goTo]);
+  const handleAssets = useCallback(() => goTo("/user-dashboard/assets"), [goTo]);
+  const handleAnalytics = useCallback(() => goTo("/user-dashboard/analytics"), [goTo]);
+  const handleSettings = useCallback(() => goTo("/user-dashboard/dashboard/settings/"), [goTo]);
 
   // Each menu has a section title (null disables)
   const sections = [
     {
       title: "Main",
       menus: [
-        { icon: <FaChartBar />, label: "Dashboard", sub: false },
-        { icon: <TbMoneybag />, label: "My Assets", sub: false },
-        { icon: <TbBrandGoogleAnalytics />, label: "My Analytics", sub: false },
+        { 
+          icon: <FaChartBar />, 
+          label: "Dashboard", 
+          sub: false, 
+          link: "/user-dashboard/dashboard",
+          onClick: handleDashboard 
+        },
+        { 
+          icon: <TbMoneybag />, 
+          label: "My Assets", 
+          sub: false, 
+          link: "/user-dashboard/assets",
+          onClick: handleAssets 
+        },
+        { 
+          icon: <TbBrandGoogleAnalytics />, 
+          label: "My Analytics", 
+          sub: false, 
+          link: "/user-dashboard/analytics",
+          onClick: handleAnalytics 
+        },
       ]
     },
     {
@@ -72,16 +97,15 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }) {
     },
   ];
 
-  //   Handle logout
-async function handleLogout() {
-  try {
-    await fetch('/api/signOut', { method: 'POST' }); // same-origin; includes will auto-apply Set-Cookie
-    router.push('/');
-    // router.refresh(); // optional to revalidate client state
-  } catch (e) {
-    router.push('/');
+  // Handle logout
+  async function handleLogout() {
+    try {
+      await fetch('/api/signOut', { method: 'POST' }); 
+      goTo('/');
+    } catch (e) {
+      goTo('/');
+    }
   }
-}
 
   return (
     <aside
@@ -111,12 +135,15 @@ async function handleLogout() {
           </div>
         )}
       </div>
+      
       {/* Main navigation */}
       <nav className="flex-1 flex flex-col mt-2 gap-2 overflow-y-auto">
         {sections.map((section) => (
           <div key={section.title} className="mb-2">
             {sidebarOpen && section.title && (
-              <span className="pl-4 pt-3 pb-1 text-xs font-semibold text-gray-400 uppercase tracking-wider select-none">{section.title}</span>
+              <span className="pl-4 pt-3 pb-1 text-xs font-semibold text-gray-400 uppercase tracking-wider select-none">
+                {section.title}
+              </span>
             )}
             {section.menus.map((menu, idx) => {
               const isActive = openSub === menu.label || (section.title === "Main" && idx === 0);
@@ -133,7 +160,12 @@ async function handleLogout() {
                     style={isActive && menu.sub ? { boxShadow: '0 0 0 2px #3B82F622, 0 1px 2px 0 #0001' } : {}}
                     tabIndex={0}
                     onClick={() => {
-                      if (menu.sub) setOpenSub(openSub === menu.label ? "" : menu.label);
+                      if (menu.sub) {
+                        setOpenSub(openSub === menu.label ? "" : menu.label);
+                      } else if (menu.onClick) {
+                        // Handle navigation for non-submenu items
+                        menu.onClick();
+                      }
                     }}
                   >
                     <span className={`flex-none ${sidebarOpen ? "mr-3" : ""} text-lg`}>
@@ -153,13 +185,21 @@ async function handleLogout() {
                       </>
                     )}
                   </div>
+                  
                   {/* Submenu */}
                   {sidebarOpen && menu.sub && openSub === menu.label && (
                     <div className="m-2 mt-0 rounded-xl bg-blue-50/[0.9] px-3 py-1.5 ">
                       {subMenus.map((sub) => (
-                        <div key={sub.label} className="flex items-center mb-1 pl-2 last:mb-0 text-gray-700 hover:bg-blue-100 hover:text-green-400 rounded-lg text-sm cursor-pointer">
-                            {sub.icon}
-                          <div className="pl-4 pr-3 py-2 ">
+                        <div 
+                          key={sub.label} 
+                          className="flex items-center mb-1 pl-2 last:mb-0 text-gray-700 hover:bg-blue-100 hover:text-green-400 rounded-lg text-sm cursor-pointer"
+                          onClick={() => {
+                            // You can add specific submenu navigation here
+                            console.log(`Clicked: ${menu.label} -> ${sub.label}`);
+                          }}
+                        >
+                          {sub.icon}
+                          <div className="pl-4 pr-3 py-2">
                             {sub.label}
                           </div>
                         </div>
@@ -171,19 +211,27 @@ async function handleLogout() {
             })}
           </div>
         ))}
+        
         {/* Spacer to push profile to bottom */}
         <div className="flex-1"></div>
+        
         {/* Settings/Logout */}
         <div className="mb-3 pt-1 border-t">
-          <div className={`flex items-center mx-2 px-3 py-2 rounded-lg cursor-pointer hover:bg-gray-50 text-gray-700 gap-3`}>
-            <FaCog />{sidebarOpen && <span className="text-sm">Settings</span>}
+          <div 
+            className={`flex items-center mx-2 px-3 py-2 rounded-lg cursor-pointer hover:bg-gray-50 text-gray-700 gap-3`}
+            onClick={handleSettings}
+          >
+            <FaCog />
+            {sidebarOpen && <span className="text-sm">Settings</span>}
           </div>
           <div className={`flex items-center mx-2 px-3 py-2 rounded-lg hover:bg-gray-50 text-gray-700 gap-3`}>
             <button onClick={handleLogout} className="flex items-center gap-3 w-full cursor-pointer">
-              <FaSignOutAlt />{sidebarOpen && <span className="text-sm">Logout</span>}
+              <FaSignOutAlt />
+              {sidebarOpen && <span className="text-sm">Logout</span>}
             </button>
           </div>
         </div>
+        
         {/* User Profile block */}
         <div className="flex items-center px-3 py-3 mt-2 mb-2 bg-gray-50 rounded-2xl mx-2">
           <Image
