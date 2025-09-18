@@ -26,9 +26,10 @@ ICICI_CREDENTIALS = {
     "SWADESHHUF":{
         "API_KEY" : "5J9$vz7915w597@5320t39n6910bq~38",
         "API_SECRET" : "02~07j8d9r000!6G30W7mjZ9nT6674_1",
-        "SESSION_TOKEN" : "52959229",
+        "SESSION_TOKEN" : "53009518",
         "SESSION_KEY" : "VzA2MjkyMTU6NjU4NjkzMjk="
     }
 }
 
 CUSTOMER_DETAIL_URL = "https://api.icicidirect.com/breezeapi/api/v1/customerdetails"
+CONFIG_API_URL = "http://localhost:3000/api/"
