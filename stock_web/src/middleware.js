@@ -33,17 +33,20 @@ export async function middleware(request) {
 
     // Handle API requests requiring Bearer token authorization
     if (pathname.startsWith('/api')) {
-        const authorizationHeader = request.headers.get('authorization');
-        if (!authorizationHeader || !authorizationHeader.startsWith('Bearer ')) {
-            return NextResponse.json({ status: 'Unauthorized' }, { status: 401, headers });
+        const cookie = request.headers.get('cookie') || '';
+        console.log("Coookiee data:: ",cookie)
+        const tokenCookie = cookie.split('; ').find(c => c.startsWith('token='));
+
+        if (!tokenCookie) {
+        return NextResponse.json({ status: 'Unauthorized' }, { status: 401, headers});
         }
 
+        const token = tokenCookie.split('=')[1];
+
         try {
-            // Forward the authorization header to the /api/tokenverify endpoint
-            console.log("Authorization Header: ", authorizationHeader);
             const response = await fetch(`${request.nextUrl.origin}/api/tokenverify`, {
                 method: 'GET',
-                headers: { authorization: authorizationHeader },
+                headers: { authorization: `Bearer ${token}` },
             });
             if (response.status === 200) {
                 return NextResponse.next({ request: { headers } });

@@ -23,51 +23,178 @@ import requests
 import json
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
-from breeze_connection import multi_connect, ICICI_CREDENTIALS
+from breeze_connection import multi_connect, ICICI_CREDENTIALS, CONFIG_API_URL
 
 sys.path.append(os.path.join(os.path.dirname(__file__),'..', '..', 'common_scripts'))
 from enable_logging import print_log
 
 # API Configuration
-CONFIG_API_URL = "http://127.0.0.1:9000"
 API_TIMEOUT = 30  # seconds
 
-def fetch_trading_config():
-    """Fetch trading configuration from API"""
-    try:
-        print_log(f"🔗 Fetching configuration from: {CONFIG_API_URL}")
+# def fetch_trading_config():
+#     """Fetch trading configuration from API"""
+#     try:
+#         print_log(f"🔗 Fetching configuration from: {CONFIG_API_URL}")
 
-        response = requests.get(CONFIG_API_URL, timeout=API_TIMEOUT)
+#         response = requests.get(CONFIG_API_URL, timeout=API_TIMEOUT)
         
+#         response.raise_for_status()
+
+#         config = response.json()
+#         config = config['status']
+#         # Validate required fields
+#         required_fields = ['capital_per_stock', 'is_live', 'symbols', 'entry_condition', 'exit_condition', 'interval']
+#         for field in required_fields:
+#             if field not in config:
+#                 raise ValueError(f"Missing required field: {field}")
+
+#         print_log(f"✅ Configuration loaded successfully")
+#         print_log(f"📊 Capital per stock: ₹{config['capital_per_stock']:,}")
+#         print_log(f"🔄 Trading mode: {'LIVE' if config['is_live'] else 'DRY RUN'}")
+#         print_log(f"📈 Symbols count: {len(config['symbols'])}")
+#         print_log(f"📈 Interval: {config['interval']}")
+#         print_log(f"🎯 Entry conditions: {len(config['entry_condition'])}")
+#         print_log(f"🚪 Exit conditions: {len(config['exit_condition'])}")
+
+#         return config
+
+#     except requests.exceptions.RequestException as e:
+#         print_log(f"❌ Failed to fetch configuration from API: {e}")
+#         return None
+#     except json.JSONDecodeError as e:
+#         print_log(f"❌ Invalid JSON response from API: {e}")
+#         return None
+#     except Exception as e:
+#         print_log(f"❌ Error loading configuration: {e}")
+#         return None
+
+def fetch_trading_config(user_id):
+    """Fetch trading configuration from getBotConfig API first, then fallback to MySQL"""
+    
+    # First, try getBotConfig API with cookie authentication
+    try:
+        print_log("🔗 Trying getBotConfig API with cookie authentication...")
+        
+        # Try the getBotConfig API endpoint
+        getBotConfig_url = f"{CONFIG_API_URL}getBotConfig"
+        print(f"getBotConfigURL:: {getBotConfig_url}")
+        response = requests.get(getBotConfig_url, timeout=API_TIMEOUT)
         response.raise_for_status()
-
-        config = response.json()
-        config = config['status']
-        # Validate required fields
-        required_fields = ['capital_per_stock', 'is_live', 'symbols', 'entry_condition', 'exit_condition', 'interval']
-        for field in required_fields:
-            if field not in config:
-                raise ValueError(f"Missing required field: {field}")
-
-        print_log(f"✅ Configuration loaded successfully")
-        print_log(f"📊 Capital per stock: ₹{config['capital_per_stock']:,}")
-        print_log(f"🔄 Trading mode: {'LIVE' if config['is_live'] else 'DRY RUN'}")
-        print_log(f"📈 Symbols count: {len(config['symbols'])}")
-        print_log(f"📈 Interval: {config['interval']}")
-        print_log(f"🎯 Entry conditions: {len(config['entry_condition'])}")
-        print_log(f"🚪 Exit conditions: {len(config['exit_condition'])}")
-
-        return config
-
-    except requests.exceptions.RequestException as e:
-        print_log(f"❌ Failed to fetch configuration from API: {e}")
-        return None
-    except json.JSONDecodeError as e:
-        print_log(f"❌ Invalid JSON response from API: {e}")
-        return None
+        
+        api_data = response.json()
+        
+        # Transform getBotConfig response to expected format
+        if api_data:
+            config = {
+                "capital_per_stock": api_data.get("capitalPerStock", 5000),
+                "is_live": api_data.get("isLive", False),
+                "symbols": api_data.get("symbols", ["RELIANCE", "TCS", "HDFCBANK"]),
+                "entry_condition": api_data.get("entryCondition", []),
+                "exit_condition": api_data.get("exitCondition", []),
+                "interval": api_data.get("interval", "1day"),
+                "session_token": api_data.get("sessionToken", ""),
+                "user": api_data.get("sessionUser", "SWADESH")
+            }
+            
+            print_log("✅ Configuration loaded from getBotConfig API")
+            print_log(f"📊 Capital per stock: ₹{config['capital_per_stock']:,}")
+            print_log(f"🔄 Trading mode: {'LIVE' if config['is_live'] else 'DRY RUN'}")
+            print_log(f"📈 Symbols count: {len(config['symbols'])}")
+            print_log(f"📈 Interval: {config['interval']}")
+            print_log(f"🎯 Entry conditions: {len(config['entry_condition'])}")
+            print_log(f"🚪 Exit conditions: {len(config['exit_condition'])}")
+            
+            return config
+            
     except Exception as e:
-        print_log(f"❌ Error loading configuration: {e}")
-        return None
+        print_log(f"⚠️ getBotConfig API failed: {e}")
+        print_log("🔄 Falling back to MySQL direct query...")
+    
+    # Fallback to MySQL direct query if API fails
+    try:
+        import mysql.connector
+        from mysql.connector import Error
+        
+        print_log("🗄️ Connecting to MySQL database...")
+        
+        # MySQL connection details - adjust as needed
+        connection = mysql.connector.connect(
+            host='localhost',  # Change to your MySQL host
+            database='stock_exchnage',  # Change to your database name
+            user='root',  # Change to your MySQL username
+            password='Stock@321'  # Change to your MySQL password
+        )
+        
+        if connection.is_connected():
+            cursor = connection.cursor(dictionary=True)
+            
+            # Get main bot config
+            cursor.execute("SELECT * FROM botConfig WHERE userId = %s", (user_id,))
+            bot_config = cursor.fetchone()
+            
+            if not bot_config:
+                raise Exception("No bot configuration found in database")
+            
+            # Get symbols
+            cursor.execute("SELECT name FROM Symbol WHERE botConfigId = %s", (bot_config['id'],))
+            symbols_result = cursor.fetchall()
+            symbols = [row['name'] for row in symbols_result]
+            
+            # Get entry conditions
+            cursor.execute("SELECT * FROM entryCondition WHERE botConfigId = %s", (bot_config['id'],))
+            entry_conditions_result = cursor.fetchall()
+            entry_conditions = [{
+                "left": row['left'],
+                "operator": row['operator'],
+                "right": row['right'],
+                "type": row['type']
+            } for row in entry_conditions_result]
+            
+            # Get exit conditions
+            cursor.execute("SELECT * FROM exitCondition WHERE botConfigId = %s", (bot_config['id'],))
+            exit_conditions_result = cursor.fetchall()
+            exit_conditions = [{
+                "left": row['left'],
+                "operator": row['operator'],
+                "right": row['right'],
+                "type": row['type']
+            } for row in exit_conditions_result]
+            
+            # Build final config
+            config = {
+                "capital_per_stock": float(bot_config['capitalPerStock']),
+                "is_live": bool(bot_config['isLive']),
+                "symbols": symbols,
+                "entry_condition": entry_conditions,
+                "exit_condition": exit_conditions,
+                "interval": bot_config['interval'],
+                "session_token": bot_config['sessionToken'],
+                "user": bot_config['user']  # You might want to get this from the user table
+            }
+            
+            print_log("✅ Configuration loaded from MySQL database")
+            print_log(f"📊 Capital per stock: ₹{config['capital_per_stock']:,}")
+            print_log(f"🔄 Trading mode: {'LIVE' if config['is_live'] else 'DRY RUN'}")
+            print_log(f"📈 Symbols count: {len(config['symbols'])}")
+            print_log(f"📈 Interval: {config['interval']}")
+            print_log(f"🎯 Entry conditions: {len(config['entry_condition'])}")
+            print_log(f"🚪 Exit conditions: {len(config['exit_condition'])}")
+            
+            return config
+            
+    except Error as e:
+        print_log(f"❌ MySQL connection error: {e}")
+    except Exception as e:
+        print_log(f"❌ Error loading configuration from MySQL: {e}")
+    finally:
+        if 'connection' in locals() and connection.is_connected():
+            cursor.close()
+            connection.close()
+            print_log("🔌 MySQL connection closed")
+    
+    # Ultimate fallback - return None to use get_fallback_config()
+    return None
+
 
 def get_fallback_config():
     """Return fallback configuration if API is unavailable"""
@@ -414,22 +541,23 @@ def update_stock_data(breeze, symbol, save_dir, interval):
         print_log(f"❌ Error updating data for {symbol}: {e}")
         return None
 
-def main():
+def main(user_id):
     """Main trading function - runs once daily with dynamic configuration"""
     print_log("🚀 Starting Dynamic Trading Bot...")
     print_log(f"📅 Trading Date: {datetime.now().strftime('%Y-%m-%d')}")
     
     try:
         # Step 1: Fetch dynamic configuration from API
-        config = fetch_trading_config()
+        config = fetch_trading_config(user_id)
         if config is None:
             print_log("⚠️ API configuration failed, using fallback settings")
             config = get_fallback_config()
-
+        
         # Extract configuration values
         capital_per_stock = config["capital_per_stock"]
         is_live = config["is_live"]
         symbols = config["symbols"]
+        # symbols = ["ALSTD", "BHAELE", "NEULAB", "CAPPOI"]
         entry_conditions = config["entry_condition"]
         exit_conditions = config["exit_condition"]
         interval = config["interval"]
@@ -499,8 +627,8 @@ def main():
                 owned_quantity_orders = current_orders.get(symbol, 0)
 
                 # For stocks we DON'T own - check BUY conditions
-                if owned_quantity == 0 and owned_quantity_orders == 0:
-                    if check_entry_conditions(latest_row, entry_conditions):
+                if owned_quantity == 0:
+                    if check_entry_conditions(latest_row, entry_conditions, symbol):
                         quantity = int(capital_per_stock / closing_price)
                         if quantity > 0:
                             buy_signals.append({
@@ -564,4 +692,14 @@ def main():
         traceback.print_exc()
 
 if __name__ == "__main__":
-    main()
+    user_id = None
+    if len(sys.argv) > 1:
+        user_id = sys.argv[1]  # get user_id from argument
+        print_log(f"User ID passed from API: {user_id}")
+
+        # Modify main() signature to accept user_id if needed
+        main(user_id)
+    else:
+        print_log("No user ID argument passed.")
+    
+    

@@ -56,3 +56,49 @@ model vendors {
   created_at    DateTime? @default(now()) @db.DateTime(0)
   updated_at    DateTime? @default(now()) @db.DateTime(0)
 }
+
+model BotConfig {
+  id              Int              @unique(map: "id_UNIQUE") @default(autoincrement())
+  userId          Int              @unique
+  sessionToken    String?
+  capitalPerStock Float
+  isLive          Boolean
+  interval        String
+  user            String           @db.VarChar(45)
+  entryConditions EntryCondition[]
+  exitConditions  ExitCondition[]
+  symbols         Symbol[]
+}
+
+model Symbol {
+  id          Int        @unique(map: "id_UNIQUE") @default(autoincrement())
+  name        String
+  botConfigId Int?
+  botConfig   BotConfig? @relation(fields: [botConfigId], references: [id])
+
+  @@index([botConfigId], map: "Symbol_botConfigId_fkey")
+}
+
+model EntryCondition {
+  id          Int        @unique(map: "id_UNIQUE") @default(autoincrement())
+  left        String
+  operator    String
+  right       String
+  type        String
+  botConfigId Int?
+  botConfig   BotConfig? @relation(fields: [botConfigId], references: [id])
+
+  @@index([botConfigId], map: "EntryCondition_botConfigId_fkey")
+}
+
+model ExitCondition {
+  id          Int        @unique(map: "id_UNIQUE") @default(autoincrement())
+  left        String
+  operator    String
+  right       String
+  type        String
+  botConfigId Int?
+  botConfig   BotConfig? @relation(fields: [botConfigId], references: [id])
+
+  @@index([botConfigId], map: "ExitCondition_botConfigId_fkey")
+}
