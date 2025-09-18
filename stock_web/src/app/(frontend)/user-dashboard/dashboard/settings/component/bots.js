@@ -58,7 +58,8 @@ export default function BotPage() {
     { left: 'RSI_M', operator: '>', right: '58', type: 'number' },
     { left: 'open', operator: '>', right: 'EMA_100_D', type: 'field' },
     { left: 'EMA_100_D', operator: '>', right: 'EMA_200_D', type: 'field' },
-    { left: 'open', operator: '>', right: 'EMA_200_W', type: 'field' }
+    { left: 'open', operator: '>', right: 'EMA_200_W', type: 'field' },
+    { left: 'open', operator: '>', right: 'EMA_200_M', type: 'field' }
   ]);
 
   const [exitConditions, setExitConditions] = useState([
@@ -87,7 +88,32 @@ export default function BotPage() {
     try {
       setLoading(true);
       const data = await apiCall('/api/getBotConfig');
+      if (!data || Object.keys(data).length === 0) {
+      // No data returned, set default values but don't disable update button
+      setMessage('⚠️ No configuration returned from server, using default values.');
+      setBotStatus({
+        capital_per_stock: 5000,
+        is_live: false,
+        interval: '5minute',
+        session_token: '56776589',
+        user: 'SWADESHHUF',
+        symbols: ['AADHOS', 'AARIND', 'ABB'],
+      });
+      setEntryConditions([
+        { left: 'RSI_D', operator: '>', right: '58', type: 'number' },
+        { left: 'RSI_W', operator: '>', right: '58', type: 'number' },
+        { left: 'RSI_M', operator: '>', right: '58', type: 'number' },
+        { left: 'open', operator: '>', right: 'EMA_100_D', type: 'field' },
+        { left: 'EMA_100_D', operator: '>', right: 'EMA_200_D', type: 'field' },
+        { left: 'open', operator: '>', right: 'EMA_200_W', type: 'field' },
+      { left: 'open', operator: '>', right: 'EMA_200_M', type: 'field' }
 
+      ]);
+      setExitConditions([
+        { left: 'close', operator: '<', right: 'EMA_200_D', type: 'field' },
+        { left: 'RSI_W', operator: '<', right: '40', type: 'number' },
+      ]);
+    } else {
       setBotStatus({
         capital_per_stock: data.capitalPerStock || 5000,
         is_live: data.isLive || false,
@@ -99,6 +125,7 @@ export default function BotPage() {
 
       setEntryConditions(data.entryCondition || []);
       setExitConditions(data.exitCondition || []);
+    }
 
     } catch (error) {
       console.error('Error fetching bot config:', error);

@@ -31,43 +31,6 @@ from enable_logging import print_log
 # API Configuration
 API_TIMEOUT = 30  # seconds
 
-# def fetch_trading_config():
-#     """Fetch trading configuration from API"""
-#     try:
-#         print_log(f"🔗 Fetching configuration from: {CONFIG_API_URL}")
-
-#         response = requests.get(CONFIG_API_URL, timeout=API_TIMEOUT)
-        
-#         response.raise_for_status()
-
-#         config = response.json()
-#         config = config['status']
-#         # Validate required fields
-#         required_fields = ['capital_per_stock', 'is_live', 'symbols', 'entry_condition', 'exit_condition', 'interval']
-#         for field in required_fields:
-#             if field not in config:
-#                 raise ValueError(f"Missing required field: {field}")
-
-#         print_log(f"✅ Configuration loaded successfully")
-#         print_log(f"📊 Capital per stock: ₹{config['capital_per_stock']:,}")
-#         print_log(f"🔄 Trading mode: {'LIVE' if config['is_live'] else 'DRY RUN'}")
-#         print_log(f"📈 Symbols count: {len(config['symbols'])}")
-#         print_log(f"📈 Interval: {config['interval']}")
-#         print_log(f"🎯 Entry conditions: {len(config['entry_condition'])}")
-#         print_log(f"🚪 Exit conditions: {len(config['exit_condition'])}")
-
-#         return config
-
-#     except requests.exceptions.RequestException as e:
-#         print_log(f"❌ Failed to fetch configuration from API: {e}")
-#         return None
-#     except json.JSONDecodeError as e:
-#         print_log(f"❌ Invalid JSON response from API: {e}")
-#         return None
-#     except Exception as e:
-#         print_log(f"❌ Error loading configuration: {e}")
-#         return None
-
 def fetch_trading_config(user_id):
     """Fetch trading configuration from getBotConfig API first, then fallback to MySQL"""
     
@@ -129,7 +92,7 @@ def fetch_trading_config(user_id):
             cursor = connection.cursor(dictionary=True)
             
             # Get main bot config
-            cursor.execute("SELECT * FROM botConfig WHERE userId = %s", (user_id,))
+            cursor.execute("SELECT * FROM BotConfig WHERE userId = %s", (user_id,))
             bot_config = cursor.fetchone()
             
             if not bot_config:
@@ -141,7 +104,7 @@ def fetch_trading_config(user_id):
             symbols = [row['name'] for row in symbols_result]
             
             # Get entry conditions
-            cursor.execute("SELECT * FROM entryCondition WHERE botConfigId = %s", (bot_config['id'],))
+            cursor.execute("SELECT * FROM EntryCondition WHERE botConfigId = %s", (bot_config['id'],))
             entry_conditions_result = cursor.fetchall()
             entry_conditions = [{
                 "left": row['left'],
@@ -151,7 +114,7 @@ def fetch_trading_config(user_id):
             } for row in entry_conditions_result]
             
             # Get exit conditions
-            cursor.execute("SELECT * FROM exitCondition WHERE botConfigId = %s", (bot_config['id'],))
+            cursor.execute("SELECT * FROM ExitCondition WHERE botConfigId = %s", (bot_config['id'],))
             exit_conditions_result = cursor.fetchall()
             exit_conditions = [{
                 "left": row['left'],
