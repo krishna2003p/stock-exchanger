@@ -60,11 +60,11 @@ model vendors {
 model BotConfig {
   id              Int              @unique(map: "id_UNIQUE") @default(autoincrement())
   userId          Int              @unique
+  user            String           @db.VarChar(45)
   sessionToken    String?
   capitalPerStock Float
   isLive          Boolean
   interval        String
-  user            String           @db.VarChar(45)
   entryConditions EntryCondition[]
   exitConditions  ExitCondition[]
   symbols         Symbol[]
@@ -101,4 +101,12 @@ model ExitCondition {
   botConfig   BotConfig? @relation(fields: [botConfigId], references: [id])
 
   @@index([botConfigId], map: "ExitCondition_botConfigId_fkey")
+}
+
+model bots {
+  id            Int    @id @unique(map: "id_UNIQUE") @default(autoincrement())
+  user_id       Int    @unique(map: "user_id_UNIQUE")
+  name          String @db.VarChar(45)
+  password      String @db.VarChar(256)
+  bot_config_id Int
 }

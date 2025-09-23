@@ -590,7 +590,7 @@ def main(user_id):
                 owned_quantity_orders = current_orders.get(symbol, 0)
 
                 # For stocks we DON'T own - check BUY conditions
-                if owned_quantity == 0:
+                if owned_quantity == 0 and owned_quantity_orders == 0:  
                     if check_entry_conditions(latest_row, entry_conditions, symbol):
                         quantity = int(capital_per_stock / closing_price)
                         if quantity > 0:
@@ -602,7 +602,11 @@ def main(user_id):
                             })
 
                 # For stocks we DO own - check SELL conditions
-                else:
+                else:  
+                    if owned_quantity_orders != 0:
+                        print_log(f"{symbol} Already is in order book:: ")
+                    else:
+                        print_log(f"{symbol} Already is in holdings:: ")
                     if check_exit_conditions(latest_row, exit_conditions):
                         sell_signals.append({
                             'symbol': symbol,
@@ -643,6 +647,7 @@ def main(user_id):
         print_log(f"💰 Capital per Stock: ₹{capital_per_stock:,}")
         print_log(f"📈 Symbols Processed: {len(symbols)}")
         print_log(f"📊 Current Holdings: {len(current_holdings)} stocks")
+        print_log(f"📊 Current Orders: {len(current_orders)} stocks")
         print_log(f"🔴 Sell Orders: {len(sell_signals)} (₹{total_sell_value:,.2f})")
         print_log(f"🟢 Buy Orders: {len(buy_signals)} (₹{total_buy_value:,.2f})")
         print_log(f"💹 Net Flow: ₹{total_buy_value - total_sell_value:,.2f}")

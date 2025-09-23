@@ -67,3 +67,37 @@ export async function updateBotConfig(userId, data) {
 
   return botConfig;
 }
+
+export async function getBotPassword(user_id) {
+  try {
+    // Get password hash from bot_passwords table or users table
+    const passwordRecord = await prisma.bots.findUnique({
+      where: { user_id },
+      select: { password: true }
+    });
+
+    return passwordRecord.password;
+
+  } catch (error) {
+    console.error('Error fetching bot password:', error);
+    throw new Error('Failed to retrieve password');
+  }
+}
+
+
+export async function setBotPassword(user_id, password, name, bot_config_id) {
+  try {
+    // Upsert password hash for the user
+    const passwordRecord = await prisma.bots.upsert({
+      where: { user_id },
+      update: { password },
+      create: { user_id, password, name, bot_config_id }
+    });
+
+    return passwordRecord;
+  } catch (error) {
+    console.error('Error setting bot password:', error);
+    throw new Error('Failed to set password');
+  }
+}
+

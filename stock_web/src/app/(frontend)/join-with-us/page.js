@@ -96,7 +96,7 @@ export default function AuthPage() {
       // document.cookie = `token=${data.token}; Path=/; Secure; SameSite=Lax`;
 
       // Navigate; middleware can also redirect based on token verification
-      router.push("/dashboard");
+      router.push("/user-dashboard");
     } catch (err) {
       setError(err?.message || "Sign in error");
     } finally {
