@@ -55,7 +55,6 @@ export default function BotPage() {
     session_token: '',
     user: 'SWADESH',
     symbols: ['AADHOS', 'AARIND', 'ABB'] });
-  });
 
   const [entryConditions, setEntryConditions] = useState([
     { left: 'RSI_D', operator: '>', right: '58', type: 'number' },
@@ -311,7 +310,7 @@ const fetchBotPassword = useCallback(async () => {
       setLoading(true);
       setMessage('');
 
-      const result = await apiCall('/api/run_bot', 'POST');
+      const result = await apiCall('/api/runBot', 'POST');
       setMessage('🚀 Bot started successfully!');
       console.log('Bot output:', result.output);
 
