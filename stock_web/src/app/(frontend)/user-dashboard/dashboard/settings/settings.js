@@ -257,7 +257,7 @@ export default function SettingsPage() {
                   {loading ? (
                     <span className="text-gray-400">Uploading...</span>
                   ) : avatarUrl ? (
-                    <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                    <Image src={avatarUrl} alt="Avatar" width={80} height={80} className="object-cover" />
                   ) : (
                     <IoCameraOutline className="text-gray-400" size={26} />
                   )}

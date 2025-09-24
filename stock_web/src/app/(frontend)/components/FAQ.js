@@ -8,7 +8,7 @@ const faqs = [
   {
     question: "What Does This Tool Do?",
     answer:
-      "Online trading’s primary advantages are that it allows you to manage your trades at your convenience.",
+      "Online trading&apos;s primary advantages are that it allows you to manage your trades at your convenience.",
   },
   {
     question: "What Are The Disadvantages Of Online Trading?",
@@ -23,7 +23,7 @@ const faqs = [
   {
     question: "What Is Online Trading, And How Does It Work?",
     answer:
-      "Online trading is the act of buying and selling financial products via an internet-based platform. It’s fast, convenient, and accessible.",
+      "Online trading is the act of buying and selling financial products via an internet-based platform. It&apos;s fast, convenient, and accessible.",
   },
   {
     question: "Which App Is Best For Online Trading?",
@@ -58,7 +58,7 @@ export default function FAQPage() {
             <span className="text-green-400">Frequently</span> Asked Questions
           </h2>
           <p className="text-gray-400 mb-8 text-sm md:text-base lg:text-lg max-w-lg">
-            Hey there! Got questions? We've got answers. Check out our FAQ page for all the deets. Still not satisfied? Hit us up.
+            Hey there! Got questions? We&apos;ve got answers. Check out our FAQ page for all the deets. Still not satisfied? Hit us up.
           </p>
           <div className="w-full max-w-lg">
             {faqs.map((faq, i) => (

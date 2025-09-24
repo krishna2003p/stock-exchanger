@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { IoCameraOutline } from "react-icons/io5";
 import SettingSidebar from "./sidebar";
+import Image from "next/image";
 // import { cookies } from "next/headers";
 
 function getCookie(name) {
@@ -181,7 +182,7 @@ export default function Profile() {
                   {loading ? (
                     <span className="text-gray-400">Uploading...</span>
                   ) : avatarUrl ? (
-                    <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                    <Image src={avatarUrl} alt="Avatar" width={80} height={80} className="object-cover" />
                   ) : (
                     <IoCameraOutline className="text-gray-400" size={26} />
                   )}

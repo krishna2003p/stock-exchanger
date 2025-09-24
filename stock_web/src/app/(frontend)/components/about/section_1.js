@@ -20,7 +20,7 @@ const Section1 = () => {
             Meet <span className="text-green-400">Our Company</span> Unless <br />Miss The Opportunity
           </h2>
           <p className="text-gray-300 mb-8">
-            Hey there! So glad you stopped by to Meet Our Company. Don't miss out on this opportunity to learn about what we do and the amazing team that makes it all happen! Our company is all about creating innovative solutions and providing top-notch services to our clients. From start to finish, we're dedicated to delivering results that exceed expectations.
+            Hey there! So glad you stopped by to Meet Our Company. Don&apos;t miss out on this opportunity to learn about what we do and the amazing team that makes it all happen! Our company is all about creating innovative solutions and providing top-notch services to our clients. From start to finish, we&apos;re dedicated to delivering results that exceed expectations.
           </p>
           <button className="bg-green-400 px-8 py-3 rounded-lg text-white font-bold text-lg shadow-lg hover:bg-green-500 transition">
             Explore More
