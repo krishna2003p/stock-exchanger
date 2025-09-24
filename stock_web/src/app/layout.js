@@ -1,9 +1,9 @@
 // src/app/layout.js
 'use client';
 
-import { Provider } from 'react-redux';
-import { store } from '../store/index.js';
-import { WebSocketConnectionManager } from '../components/websocket-connection-manager.js';
+// import { Provider } from 'react-redux';
+// import { store } from '../store/index.js';
+// import { WebSocketConnectionManager } from '../components/websocket-connection-manager.js';
 import { useEffect } from 'react';
 import './globals.css';
 
@@ -24,13 +24,13 @@ export default function RootLayout({ children }) {
         <link rel="icon" href="/favicon.ico" />
       </head>
       <body className="bg-gray-100 text-gray-900 antialiased">
-        <Provider store={store}>
-          <WebSocketConnectionManager>
+        {/* <Provider store={store}>
+          <WebSocketConnectionManager> */}
             <main className="min-h-screen">
               {children}
             </main>
-          </WebSocketConnectionManager>
-        </Provider>
+          {/* </WebSocketConnectionManager>
+        </Provider> */}
       </body>
     </html>
   );

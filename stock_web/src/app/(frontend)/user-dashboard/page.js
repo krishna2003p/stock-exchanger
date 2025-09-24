@@ -17,8 +17,8 @@ export default function UserDashboardApp() {
         <div className="flex-1 flex flex-col">
           <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
           <Navbar darkMode={darkMode} setDarkMode={setDarkMode} />
-          {/* <DashboardCards /> */}
-          <MarketDashboard />
+          <DashboardCards />
+          {/* <MarketDashboard /> */}
         </div>
       </div>
     </div>
