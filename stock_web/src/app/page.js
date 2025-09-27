@@ -9,7 +9,7 @@ import FAQPage from "@/app/(frontend)/components/FAQ";
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-[#00150f] min-h-screen flex flex-col">
+    <div className="min-h-screen bg-[#00150f] min-h-screen flex flex-col text-black">
       <Header />
       <Home />
       <About />

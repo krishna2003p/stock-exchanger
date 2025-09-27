@@ -176,7 +176,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#fafafa]">
+    <div className="min-h-screen bg-[#fafafa] text-black">
       <div className="mx-18 p-6">
         <div className="grid grid-cols-12 gap-6">
           {/* Sidebar omitted for brevity */}

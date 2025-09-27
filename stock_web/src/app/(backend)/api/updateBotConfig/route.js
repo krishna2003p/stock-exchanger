@@ -5,6 +5,7 @@ import * as yup from 'yup';
 
 // You can define your schema similar to userSchema but for your bot config
 const botSchema = yup.object().shape({
+  id: yup.string().required('Bot ID is required'),
   sessionToken: yup.string().required(),
   sessionUser: yup.string().required(),
   capitalPerStock: yup.number().required(),

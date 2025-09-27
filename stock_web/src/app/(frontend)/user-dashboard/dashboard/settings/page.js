@@ -4,12 +4,12 @@ import Sidebar from "@/app/(frontend)/components/account/SideBar";
 import Navbar from "@/app/(frontend)/components/account/NavBar";
 import SettingSidebar from "./component/sidebar";
 import Profile from "./component/profile";
-import Bots from "./component/bots";
-import SettingsPage from "./component/settings";
+import Bots from "./component/bot/bot-configuration";
+import BotPage from "./component/bot/bot-page";
 
 
 export default function Settings() {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
   const [activeSection, setActiveSection] = useState("profile");
 
@@ -29,7 +29,7 @@ export default function Settings() {
           />
           <section className="col-span-12 md:col-span-9">
             {activeSection === "profile" && <Profile />}
-            {activeSection === "bots" && <Bots />}
+            {activeSection === "bots" && <BotPage />}
             {/* add more for other sections */}
             {/* <Profile /> */}
           </section>

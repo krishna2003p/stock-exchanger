@@ -7,7 +7,7 @@ import WatchlistPage from "./watchlist";
 import SettingsPage from "./settings/settings";
 
 export default function DashboardApp() {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
 
   return (

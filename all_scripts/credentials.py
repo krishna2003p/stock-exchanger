@@ -33,3 +33,9 @@ ICICI_CREDENTIALS = {
 
 CUSTOMER_DETAIL_URL = "https://api.icicidirect.com/breezeapi/api/v1/customerdetails"
 CONFIG_API_URL = "http://localhost:3000/api/"
+
+# MySQL Database Credentials
+MYSQL_HOST='localhost'
+MYSQL_DATABASE='stock_exchnage'
+MYSQL_USER='root'
+MYSQL_PASSWORD='Stock@321'

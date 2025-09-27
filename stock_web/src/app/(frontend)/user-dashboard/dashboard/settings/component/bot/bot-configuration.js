@@ -10,6 +10,10 @@ import CryptoJS from 'crypto-js';
 import { RxTokens } from "react-icons/rx";
 import { BsCurrencyRupee } from "react-icons/bs";
 import { ImStopwatch } from "react-icons/im";
+import { SiStatuspal } from "react-icons/si";
+import { VscOutput } from "react-icons/vsc";
+import { BsStopwatch } from "react-icons/bs";
+import { apiCall } from '@/lib/api';
 
 // Static Data
 const USERS = ['VACHI', 'SWADESH', 'RAMKISHAN', 'RAMKISHANHUF', 'SWADESHHUF'];
@@ -26,27 +30,7 @@ const OPERATORS = [
 const INDICATORS = ['RSI_D', 'RSI_W', 'RSI_M', 'EMA_50_D', 'EMA_100_D', 'EMA_200_D', 'EMA_50_W', 'EMA_100_W', 'EMA_200_W', 'EMA_50_M', 'EMA_100_M', 'EMA_200_M', 'open', 'close', 'high', 'low', 'volume'];
 const INTERVALS = ['1minute', '5minute', '30minute', '1day'];
 
-// API utility functions
-const apiCall = async (endpoint, method = 'GET', data = null) => {
-  const config = {
-    method,
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json' }
-  };
-
-  if (data) config.body = JSON.stringify(data);
-
-  const response = await fetch(endpoint, config);
-  const result = await response.json();
-
-  if (!response.ok) {
-    throw new Error(result.error || `Request failed with status ${response.status}`);
-  }
-
-  return result;
-};
-
-export default function BotPage() {
+export default function BotConfig( {botDetails}) {
   // Main State
   const [botStatus, setBotStatus] = useState({
     capital_per_stock: 5000,
@@ -79,7 +63,7 @@ export default function BotPage() {
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [initialLoad, setInitialLoad] = useState(true);
-  const [dbPasswordHash, setDbPasswordHash] = useState(null);
+  const [botOutput, setBotOutput] = useState({});
 
   // Security/Lock State
   const [isLocked, setIsLocked] = useState(true); // Configuration is locked by default
@@ -98,23 +82,6 @@ export default function BotPage() {
 const hashPassword = (password) => {
   return CryptoJS.SHA256(password).toString();
 };
-  // Fix the fetchBotPassword function
-const fetchBotPassword = useCallback(async () => {
-  try {
-    setLoading(true);
-    const response = await apiCall('/api/getBotPassword');
-    const passwordHash = response.passwordHash;
-    
-    setDbPasswordHash(passwordHash);
-    return passwordHash;
-  } catch (error) {
-    console.error('Error fetching bot password:', error);
-    setMessage('⚠️ Could not load password configuration from server.');
-    return null;
-  } finally {
-    setLoading(false);
-  }
-}, []);
 
   const validatePassword = useCallback(async () => {
   if (!passwordInput.trim()) {
@@ -124,15 +91,11 @@ const fetchBotPassword = useCallback(async () => {
 
   try {
     setLoading(true);
-    
     // Hash the input password
     const hashedInput = hashPassword(passwordInput);
     
     // Get password hash from database if not already loaded
-    let passwordHash = dbPasswordHash;
-    if (!passwordHash) {
-      passwordHash = await fetchBotPassword();
-    }
+    let passwordHash = botDetails?.password;
     
     if (!passwordHash) {
       setMessage('❌ No password configured. Please contact administrator.');
@@ -159,7 +122,7 @@ const fetchBotPassword = useCallback(async () => {
   } finally {
     setLoading(false);
   }
-}, [passwordInput, dbPasswordHash, fetchBotPassword]);
+}, [passwordInput]);
 
   // Lock the configuration
   const lockConfiguration = useCallback(() => {
@@ -176,7 +139,7 @@ const fetchBotPassword = useCallback(async () => {
       setLoading(true);
       setMessage('');
 
-      const data = await apiCall('/api/getBotConfig');
+      const data = await apiCall('/api/getBotConfig', 'POST', { id: botDetails.id });
 
       if (data && Object.keys(data).length > 0 && (data.sessionToken || data.symbols?.length > 0)) {
         setBotStatus({
@@ -267,11 +230,12 @@ const fetchBotPassword = useCallback(async () => {
   useEffect(() => {
     const initializeApp = async () => {
       await fetchBotConfig();
-      await fetchBotPassword(); // Pre-load password hash
+      await fetchBotResult();
+      // await fetchBotPassword(); // Pre-load password hash
     };
     
     initializeApp();
-  }, [fetchBotConfig, fetchBotPassword]);
+  }, [fetchBotConfig]);
 
   const updateBotConfig = useCallback(async () => {
     if (!botStatus.session_token.trim()) {
@@ -284,6 +248,7 @@ const fetchBotPassword = useCallback(async () => {
       setMessage('');
 
       const payload = {
+        id: botDetails.id,
         sessionToken: botStatus.session_token,
         sessionUser: botStatus.user,
         capitalPerStock: parseFloat(botStatus.capital_per_stock),
@@ -294,7 +259,7 @@ const fetchBotPassword = useCallback(async () => {
         exitCondition: exitConditions
       };
 
-      await apiCall('/api/updateBot', 'POST', payload);
+      await apiCall('/api/updateBotConfig', 'POST', payload);
       setMessage('✅ Bot configuration updated successfully!');
 
     } catch (error) {
@@ -306,21 +271,47 @@ const fetchBotPassword = useCallback(async () => {
   }, [botStatus, entryConditions, exitConditions]);
 
   const runBot = useCallback(async () => {
-    try {
-      setLoading(true);
-      setMessage('');
-
-      const result = await apiCall('/api/runBot', 'POST');
-      setMessage('🚀 Bot started successfully!');
-      console.log('Bot output:', result.output);
-
-    } catch (error) {
-      console.error('Error running bot:', error);
-      setMessage(`❌ Bot Error: ${error.message}`);
-    } finally {
-      setLoading(false);
+  try {
+    setLoading(true);
+    setMessage("🚀 Bot is running...");
+    const result = await apiCall('/api/runBot', "POST");
+    console.log("Bot output:", result);
+    if (result.stderr) {
+      console.error("Bot Error1:", result.stderr);
+      setMessage(`❌ Bot Error: ${result.stderr}`);
+    } else {
+      setMessage("✅ " + result.message || "✅ Bot executed successfully!");
+      // Parse stdout if needed for UI:
+      if (result.stdout) {
+        const parsed = JSON.parse(result.stdout);
+        setBotOutput(parsed);
+      }
     }
-  }, []);
+  } catch (error) {
+    console.error("Error running bot:", error);
+    setMessage(`❌ Bot Error: ${error.message}`);
+  } finally {
+    setLoading(false);
+  }
+}, []);
+
+const fetchBotResult = useCallback(async () => {
+  try {
+  let res = await apiCall('/api/getBotResult', "POST", { bot_id: botDetails.id });
+  if (res.status !== 200) {
+    setMessage(`❌ Bot Error: ${res.stderr}`);
+  } else {
+    // Parse stdout if needed for UI:
+    if (res.data) {
+      let parsed = res.data;
+      setBotOutput(parsed);
+    }
+  }
+  } catch (error) {
+    console.error("Error running bot:", error);
+    setMessage(`❌ Bot Error: ${error.message}`);
+  } 
+}, []);
 
   // Condition Handlers
   const addEntryCondition = useCallback(() => {
@@ -428,10 +419,6 @@ const fetchBotPassword = useCallback(async () => {
     }));
   }, [isLocked]);
 
-  // Load configuration on mount
-  useEffect(() => {
-    fetchBotConfig();
-  }, [fetchBotConfig]);
 
   // Auto-dismiss messages
   useEffect(() => {
@@ -509,7 +496,7 @@ const fetchBotPassword = useCallback(async () => {
   ), [isLocked]);
 
   return (
-    <div className="max-w-6xl mx-auto p-6 bg-white border border-gray-300 rounded-md">
+    <div className="max-w-6xl mx-auto p-6 bg-white border text-black border-gray-300 rounded-md">
       <div className="mb-6">
         <div className="flex items-center justify-between">
           <div>
@@ -940,7 +927,7 @@ const fetchBotPassword = useCallback(async () => {
 
       {/* Status Display */}
       <div className="bg-gray-100 p-4 rounded-lg border">
-        <h3 className="font-medium mb-2">Current Status</h3>
+        <div className="flex gap-2 items-center font-medium mb-2 font-semibold"><SiStatuspal /> <span>Current Status</span></div>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm text-gray-600">
           <div>
             <strong>Mode:</strong> {botStatus.is_live ? '🟢 Live Trading' : '🟡 Paper Trading'}
@@ -962,6 +949,46 @@ const fetchBotPassword = useCallback(async () => {
           </div>
           <div className="md:col-span-3">
             <strong>Security:</strong> {isLocked ? '🔒 Configuration Locked' : '🔓 Configuration Unlocked'}
+          </div>
+        </div>
+
+        <div className="flex justify-between items-center mb-2 mt-6 ">
+          <div className='flex gap-2 items-center font-medium font-semibold'><VscOutput /> <span className='text-lg'>Bot Result</span></div>
+          <div className='mr-20 flex gap-2 text-green-800 items-center'>
+            <BsStopwatch className='text-xl font-bold' />
+            <span className='bg-green-50  rounded-2xl p-2 text-sm'>{botOutput.execution_time}</span>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm text-gray-600">
+          <div>
+            <strong>Mode:</strong> {botOutput.is_live ? '🟢 Live Trading' : '🟡 Paper Trading'}
+          </div>
+          <div>
+            <strong>Status:</strong> {botOutput.status == 'success' ? '✅ Success' : '⚠️ Pending'}
+          </div>
+          <div>
+            <strong>Total Stocks:</strong> {botOutput.symbols_processed?.toLocaleString() || 0}
+          </div>
+          <div>
+            <strong>Current Holdings:</strong> {botOutput.current_holdings?.toLocaleString() || 0}
+          </div>
+          <div>
+            <strong>Current Orders:</strong> {botOutput.current_orders?.toLocaleString() || 0}
+          </div>
+          <div>
+            <strong>Sell Orders:</strong> {botOutput.sell_orders?.toLocaleString() || 0}
+          </div>
+          <div>
+            <strong>Buy Orders:</strong> {botOutput.buy_orders?.toLocaleString() || 0}
+          </div>
+          <div>
+            <strong>Total Sell Value:</strong> ₹{botOutput.total_sell_value?.toLocaleString() || 0}
+          </div>
+          <div>
+            <strong>Total Buy Value:</strong> ₹{botOutput.total_buy_value?.toLocaleString() || 0}
+          </div>
+          <div>
+            <strong>Net Flow:</strong> ₹{botOutput.net_flow?.toLocaleString() || 0}
           </div>
         </div>
       </div>
