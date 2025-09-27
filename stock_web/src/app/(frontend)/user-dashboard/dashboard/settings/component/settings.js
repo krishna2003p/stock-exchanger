@@ -3,17 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { IoCameraOutline } from "react-icons/io5";
-import { FaUser as UserIcon } from "react-icons/fa";
-import { FaLock as LockIcon } from "react-icons/fa";
-import { FaBell as BellIcon } from "react-icons/fa";
-import { FaPalette as AppearanceIcon } from "react-icons/fa";
-import { FaChartLine as TradingIcon } from "react-icons/fa";
-import { FaRobot as BotsIcon } from "react-icons/fa";
-import { FaUserSecret as PrivacyIcon } from "react-icons/fa";
-import { FaDatabase as DataIcon } from "react-icons/fa";
-import { FaPlug as ConnectionsIcon } from "react-icons/fa";
-import Sidebar from "@/app/(frontend)/components/account/SideBar";
-import Navbar from "@/app/(frontend)/components/account/NavBar";
 // import SettingSidebar from "./sidebar";
 // import { cookies } from "next/headers";
 

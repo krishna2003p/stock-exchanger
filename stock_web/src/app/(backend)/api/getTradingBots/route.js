@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { verifyToken } from '@/utils/tokenHandler';
-import { getBotPassword, setBotPassword } from '@/services/BotService';
-import CryptoJS from 'crypto-js';
+import { getBotPassword } from '@/services/BotService';
 
 
 export async function GET(request) {
@@ -10,21 +9,15 @@ export async function GET(request) {
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-
+    
     // Get bot password hash from the database
-    const passwordHash = await getBotPassword(user.id);
+    const response = await getBotPassword(user.id);
 
-    // const newPassword = "Swadesh@909090";
-    // const passwordHash = CryptoJS.SHA256(newPassword).toString();
-
-    // await setBotPassword(user.id, passwordHash, 'RSI WealthBot', 1);
-
-    if (!passwordHash) {
+    if (!response) {
       return NextResponse.json({ error: 'Password not found' }, { status: 404 });
     }
-
     return NextResponse.json(
-      { message: 'Password hash retrieved successfully', passwordHash },
+      { status:200, message: 'Password hash retrieved successfully', data: response },
       { status: 200 }
     );
   } catch (error) {

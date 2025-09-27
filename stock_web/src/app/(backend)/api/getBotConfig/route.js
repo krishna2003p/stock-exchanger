@@ -1,21 +1,33 @@
 import { NextResponse } from 'next/server';
 import { verifyToken } from '@/utils/tokenHandler';
 import prisma from '@/utils/prismadb';
+import * as yup from 'yup';
 
-export async function GET(request) {
+// Define schema for validation
+const botSchema = yup.object().shape({
+  id: yup.string().required('Bot ID is required'),
+});
+
+export async function POST(request) {
   try {
     const user = await verifyToken(request);
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Validate request body against schema
+    const requestBody = await request.json();
+    console.log("Request Body:", requestBody);
+    await botSchema.validate(requestBody);
+    const { id } = requestBody;
+
     // Get bot config for user
-    const botConfig = await prisma.botConfig.findUnique({
-      where: { userId: user.id },
+    const botConfig = await prisma.bot_config.findUnique({
+      where: { bot_id: id },
       include: {
         symbols: true,
-        entryConditions: true,
-        exitConditions: true,
+        entry_condition: true,
+        exit_condition: true,
       }
     });
 
@@ -32,13 +44,13 @@ export async function GET(request) {
       isLive: botConfig.isLive,
       interval: botConfig.interval,
       symbols: botConfig.symbols.map(s => s.name),
-      entryCondition: botConfig.entryConditions.map(ec => ({
+      entryCondition: botConfig.entry_condition.map(ec => ({
         left: ec.left,
         operator: ec.operator,
         right: ec.right,
         type: ec.type,
       })),
-      exitCondition: botConfig.exitConditions.map(ec => ({
+      exitCondition: botConfig.exit_condition.map(ec => ({
         left: ec.left,
         operator: ec.operator,
         right: ec.right,

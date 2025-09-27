@@ -7,7 +7,7 @@ import MarketDashboard from "./MarketDashboard";
 import { useState } from "react";
 
 export default function UserDashboardApp() {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
 
   return (
