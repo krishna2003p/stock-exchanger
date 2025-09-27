@@ -27,7 +27,7 @@ export default function BotList( { bots, onSelectBot, loading, error, setBotPass
     <div className='max-w-6xl mx-auto py-6 border text-black border-gray-300 rounded-md'>
         <div className="max-w-5xl mx-auto my-4 px-6 py-6 bg-gray-50 mb-6 rounded-lg border border-gray-300">
         <h4 className="text-xl font-bold text-gray-800 mb-2">🤖 Grow Your Wealth on Autopilot with Smarter Trading Automation</h4>
-        <p className="text-gray-600">Explore our curated selection of trading bots, each designed with unique strategies to help you maximize returns while managing risk effectively. Whether you're looking for steady growth or aggressive gains, our bots offer diverse approaches to suit your investment style. Dive in and find the perfect bot to elevate your trading game!</p>
+        <p className="text-gray-600">Explore our curated selection of trading bots, each designed with unique strategies to help you maximize returns while managing risk effectively. Whether you&apos;re looking for steady growth or aggressive gains, our bots offer diverse approaches to suit your investment style. Dive in and find the perfect bot to elevate your trading game!</p>
         </div>
 
 
