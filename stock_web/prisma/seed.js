@@ -1,6 +1,10 @@
-// const { PrismaClient } = require('@prisma/client');
-// const prisma = new PrismaClient();
-import prisma from '@/utils/prismadb';
+import { PrismaClient } from '../src/generated/prisma/index.js'; // Use relative path as needed
+
+const prisma = globalThis.prisma || new PrismaClient();
+
+if (process.env.NODE_ENV === 'production') {
+  globalThis.prisma = prisma;
+}
 
 async function main() {
   // users
