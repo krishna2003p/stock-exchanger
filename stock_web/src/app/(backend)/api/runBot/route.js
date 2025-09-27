@@ -18,7 +18,7 @@ export async function POST(request) {
     const projectRoot = process.cwd(); // /path/to/stock-web
     const scriptPath = path.resolve(projectRoot, '../all_scripts/vendors/ICICI/long_term_trading_bot.py');
 
-    console.log("Executing Python script at:", scriptPath);
+    console.log("Executing Python script at:", scriptPath, "for user ID:", user.id);
 
     // Run the Python file
     const { stdout, stderr } = await execAsync(`python3 "${scriptPath}" ${user.id}`);

@@ -7,7 +7,7 @@ import MarketDashboard from "./MarketDashboard";
 import { useState } from "react";
 
 export default function UserDashboardApp() {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
 
   return (
@@ -17,8 +17,8 @@ export default function UserDashboardApp() {
         <div className="flex-1 flex flex-col">
           <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
           <Navbar darkMode={darkMode} setDarkMode={setDarkMode} />
-          {/* <DashboardCards /> */}
-          <MarketDashboard />
+          <DashboardCards />
+          {/* <MarketDashboard /> */}
         </div>
       </div>
     </div>

@@ -16,7 +16,6 @@ def connect_breeze(api_key, api_secret, session_token):
 # Multi Credentials Connection
 def multi_connect(user):
     try:
-        print(f"Excuing multi_connect function:: for {user}")
         user_credentials = ICICI_CREDENTIALS[user]
         api_key = user_credentials['API_KEY']
         api_secret = user_credentials['API_SECRET']
@@ -45,7 +44,6 @@ def session_generate(user):
         data = json.loads(customerDetail_response.text)
         session_token = data["Success"]["session_token"]
         user_credentials['SESSION_KEY'] = session_token
-        print(f"session_token::  {session_token}")
         return session_token
     except Exception as e:
         print(f"Error in session_generate function:: {e}")

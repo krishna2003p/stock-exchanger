@@ -1,12 +1,12 @@
 
 #########################################################################################
 #                                                                                       #
-# 📊 Dynamic Daily Trading Bot - API Configured 📈                                     #
-# Fetches all configuration from API: http://127.0.0.1:9000                           #
-# Runs daily - completely configurable via API response                                #
+# 📊 Dynamic Daily Trading Bot - API Configured 📈                                       #
+# Fetches all configuration from MySQL:                                                 #
+# Runs daily - completely configurable via API response                                 #
 #                                                                                       #
-# Author: KRISHNA PRAJAPATI 😊                                                         #
-# Date: 2025-09-16                                                                     #
+# Author: KRISHNA PRAJAPATI 😊                                                          #
+# Date: 2025-09-16                                                                      #
 #                                                                                       #
 #########################################################################################
 
@@ -21,90 +21,48 @@ import sys
 import traceback
 import requests
 import json
+import numpy as np
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 from breeze_connection import multi_connect, ICICI_CREDENTIALS, CONFIG_API_URL
+from db_connections import get_connection, close_connection
 
 sys.path.append(os.path.join(os.path.dirname(__file__),'..', '..', 'common_scripts'))
 from enable_logging import print_log
 
 # API Configuration
 API_TIMEOUT = 30  # seconds
+bot_id = None
 
 def fetch_trading_config(user_id):
     """Fetch trading configuration from getBotConfig API first, then fallback to MySQL"""
-    
-    # First, try getBotConfig API with cookie authentication
     try:
-        print_log("🔗 Trying getBotConfig API with cookie authentication...")
-        
-        # Try the getBotConfig API endpoint
-        getBotConfig_url = f"{CONFIG_API_URL}getBotConfig"
-        print(f"getBotConfigURL:: {getBotConfig_url}")
-        response = requests.get(getBotConfig_url, timeout=API_TIMEOUT)
-        response.raise_for_status()
-        
-        api_data = response.json()
-        
-        # Transform getBotConfig response to expected format
-        if api_data:
-            config = {
-                "capital_per_stock": api_data.get("capitalPerStock", 5000),
-                "is_live": api_data.get("isLive", False),
-                "symbols": api_data.get("symbols", ["RELIANCE", "TCS", "HDFCBANK"]),
-                "entry_condition": api_data.get("entryCondition", []),
-                "exit_condition": api_data.get("exitCondition", []),
-                "interval": api_data.get("interval", "1day"),
-                "session_token": api_data.get("sessionToken", ""),
-                "user": api_data.get("sessionUser", "SWADESH")
-            }
-            
-            print_log("✅ Configuration loaded from getBotConfig API")
-            print_log(f"📊 Capital per stock: ₹{config['capital_per_stock']:,}")
-            print_log(f"🔄 Trading mode: {'LIVE' if config['is_live'] else 'DRY RUN'}")
-            print_log(f"📈 Symbols count: {len(config['symbols'])}")
-            print_log(f"📈 Interval: {config['interval']}")
-            print_log(f"🎯 Entry conditions: {len(config['entry_condition'])}")
-            print_log(f"🚪 Exit conditions: {len(config['exit_condition'])}")
-            
-            return config
-            
-    except Exception as e:
-        print_log(f"⚠️ getBotConfig API failed: {e}")
-        print_log("🔄 Falling back to MySQL direct query...")
-    
-    # Fallback to MySQL direct query if API fails
-    try:
-        import mysql.connector
-        from mysql.connector import Error
-        
-        print_log("🗄️ Connecting to MySQL database...")
-        
+        global bot_id
         # MySQL connection details - adjust as needed
-        connection = mysql.connector.connect(
-            host='localhost',  # Change to your MySQL host
-            database='stock_exchnage',  # Change to your database name
-            user='root',  # Change to your MySQL username
-            password='Stock@321'  # Change to your MySQL password
-        )
+        connection = get_connection()
         
         if connection.is_connected():
             cursor = connection.cursor(dictionary=True)
             
             # Get main bot config
-            cursor.execute("SELECT * FROM BotConfig WHERE userId = %s", (user_id,))
+            bot_id = cursor.execute("SELECT id FROM bots WHERE user_id = %s", (user_id,))
+            bot_id = cursor.fetchone()
+            if not bot_id:
+                raise Exception("No bot found for the given user_id")
+            bot_id = bot_id['id']
+            cursor.execute("SELECT * FROM bot_config WHERE bot_id = %s", (bot_id,))
             bot_config = cursor.fetchone()
             
             if not bot_config:
                 raise Exception("No bot configuration found in database")
             
             # Get symbols
-            cursor.execute("SELECT name FROM Symbol WHERE botConfigId = %s", (bot_config['id'],))
+            cursor.execute("SELECT name FROM symbols WHERE botConfigId = %s", (bot_config['id'],))
             symbols_result = cursor.fetchall()
             symbols = [row['name'] for row in symbols_result]
             
             # Get entry conditions
-            cursor.execute("SELECT * FROM EntryCondition WHERE botConfigId = %s", (bot_config['id'],))
+            cursor.execute("SELECT * FROM entry_condition WHERE botConfigId = %s", (bot_config['id'],))
             entry_conditions_result = cursor.fetchall()
             entry_conditions = [{
                 "left": row['left'],
@@ -114,7 +72,7 @@ def fetch_trading_config(user_id):
             } for row in entry_conditions_result]
             
             # Get exit conditions
-            cursor.execute("SELECT * FROM ExitCondition WHERE botConfigId = %s", (bot_config['id'],))
+            cursor.execute("SELECT * FROM exit_condition WHERE botConfigId = %s", (bot_config['id'],))
             exit_conditions_result = cursor.fetchall()
             exit_conditions = [{
                 "left": row['left'],
@@ -144,9 +102,6 @@ def fetch_trading_config(user_id):
             print_log(f"🚪 Exit conditions: {len(config['exit_condition'])}")
             
             return config
-            
-    except Error as e:
-        print_log(f"❌ MySQL connection error: {e}")
     except Exception as e:
         print_log(f"❌ Error loading configuration from MySQL: {e}")
     finally:
@@ -157,6 +112,132 @@ def fetch_trading_config(user_id):
     
     # Ultimate fallback - return None to use get_fallback_config()
     return None
+
+# Save result in mysql
+def save_bot_result_to_db(result):
+    """Save bot result summary to MySQL database"""
+    try:
+        global bot_id
+        # MySQL connection details - adjust as needed
+        connection = get_connection()
+        
+        if connection.is_connected():
+            cursor = connection.cursor()
+            
+            result_data = cursor.execute("SELECT id FROM bot_result WHERE bot_id = %s", (bot_id,))
+            result_data = cursor.fetchone()
+            if result_data:
+                print_log("⚠️ Bot result already exists in database, updating...")
+                update_query = """
+                    UPDATE bot_result
+                    SET status=%s, execution_time=%s, capital_per_stock=%s, is_live=%s, symbols_processed=%s,
+                        current_holdings=%s, current_orders=%s, buy_orders=%s, sell_orders=%s,
+                        total_buy_value=%s, total_sell_value=%s, net_flow=%s
+                    WHERE bot_id=%s
+                """
+                cursor.execute(update_query, (
+                    result.get('status', 'unknown'),
+                    result.get('execution_time', datetime.now().strftime('%Y-%m-%d %H:%M:%S')),
+                    result.get('capital_per_stock', 0),
+                    int(result.get('is_live', False)),
+                    result.get('symbols_processed', 0),
+                    result.get('current_holdings', 0),
+                    result.get('current_orders', 0),
+                    result.get('buy_orders', 0),
+                    result.get('sell_orders', 0),
+                    result.get('total_buy_value', 0),
+                    result.get('total_sell_value', 0),
+                    result.get('net_flow', 0),
+                    bot_id
+                ))
+                connection.commit()
+                print_log("✅ Bot result updated in MySQL database")
+                return True
+
+            # Insert bot result
+            insert_query = """
+                INSERT INTO bot_result (bot_id, status, execution_time, capital_per_stock, is_live, symbols_processed, current_holdings, current_orders, buy_orders, sell_orders, total_buy_value, total_sell_value, net_flow)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """
+            data_tuple = (
+                bot_id,
+                result.get('status', 'unknown'),
+                result.get('execution_time', datetime.now().strftime('%Y-%m-%d %H:%M:%S')),
+                result.get('capital_per_stock', 0),
+                int(result.get('is_live', False)),
+                result.get('symbols_processed', 0),
+                result.get('current_holdings', 0),
+                result.get('current_orders', 0),
+                result.get('buy_orders', 0),
+                result.get('sell_orders', 0),
+                result.get('total_buy_value', 0),
+                result.get('total_sell_value', 0),
+                result.get('net_flow', 0)
+            )
+            cursor.execute(insert_query, data_tuple)
+            connection.commit()
+            
+            print_log("✅ Bot result saved to MySQL database")
+            return True
+    except Exception as e:
+        print_log(f"❌ Error saving bot result to MySQL: {e}")
+    finally:
+        if 'connection' in locals() and connection.is_connected():
+            cursor.close()
+            connection.close()
+            print_log("🔌 MySQL connection closed")
+
+# =====================
+# EMA Calculation Function
+# =====================
+def calculate_ema(series, period):
+    ema = [np.nan] * len(series)
+    k = 2 / (period + 1)
+
+    if len(series) < period:
+        return pd.Series(ema, index=series.index)
+
+    sma = series.iloc[:period].mean()
+    ema[period - 1] = sma
+
+    for i in range(period, len(series)):
+        ema[i] = (series.iloc[i] * k) + (ema[i - 1] * (1 - k))
+
+    return pd.Series(ema, index=series.index)
+
+# =====================
+# RSI Calculation Function
+# =====================
+def calculate_rsi(series, period=14):
+    delta = series.diff()
+    gains = delta.where(delta > 0, 0)
+    losses = -delta.where(delta < 0, 0)
+
+    avg_gain = gains.rolling(window=period, min_periods=period).mean().tolist()
+    avg_loss = losses.rolling(window=period, min_periods=period).mean().tolist()
+
+    rsi = [np.nan] * len(series)
+
+    for i in range(period, len(series)):
+        if i == period:
+            prev_avg_gain = avg_gain[i]
+            prev_avg_loss = avg_loss[i]
+        else:
+            current_gain = gains.iloc[i]
+            current_loss = losses.iloc[i]
+
+            prev_avg_gain = (prev_avg_gain * (period - 1) + current_gain) / period
+            prev_avg_loss = (prev_avg_loss * (period - 1) + current_loss) / period
+
+            avg_gain[i] = prev_avg_gain
+            avg_loss[i] = prev_avg_loss
+
+        if prev_avg_loss == 0:
+            rsi[i] = 100
+        else:
+            rs = prev_avg_gain / prev_avg_loss
+            rsi[i] = 100 - (100 / (1 + rs))
+    return pd.Series(rsi, index=series.index)
 
 
 def get_fallback_config():
@@ -373,49 +454,62 @@ def calculate_indicators(df):
     """Calculate all technical indicators"""
     try:
         # Daily indicators
-        df["RSI_D"] = ta.momentum.RSIIndicator(df["close"], window=14).rsi()
-        df["EMA_50_D"] = ta.trend.EMAIndicator(df["close"], window=50).ema_indicator()
-        df["EMA_100_D"] = ta.trend.EMAIndicator(df["close"], window=100).ema_indicator()
-        df["EMA_200_D"] = ta.trend.EMAIndicator(df["close"], window=200).ema_indicator()
+        close_series = df["close"]
+        df["EMA_50_D"] = calculate_ema(close_series, 50)
+        df["EMA_100_D"] = calculate_ema(close_series, 100)
+        df["EMA_200_D"] = calculate_ema(close_series, 200)
+        df["RSI_D"] = calculate_rsi(close_series, 14)
 
         # Weekly indicators
-        weekly = df.resample("W").agg({
-            "open": "first",
-            "high": "max",
-            "low": "min",
-            "close": "last",
-            "volume": "sum"
-        }).dropna()
+        weekly_raw = df.resample("W-MON", label="left", closed="left").agg({
+            "open": "first", "high": "max", "low": "min",
+            "close": "last", "volume": "sum"
+        })
 
-        weekly["RSI_W"] = ta.momentum.RSIIndicator(weekly["close"], window=14).rsi()
-        weekly["EMA_50_W"] = ta.trend.EMAIndicator(weekly["close"], window=50).ema_indicator()
-        weekly["EMA_100_W"] = ta.trend.EMAIndicator(weekly["close"], window=100).ema_indicator()
-        weekly["EMA_200_W"] = ta.trend.EMAIndicator(weekly["close"], window=200).ema_indicator()
+        weekly_raw.rename(columns={
+            "open": "open_w", "high": "high_w", "low": "low_w",
+            "close": "close_w", "volume": "volume_w"
+        }, inplace=True)
 
-        weekly_indicators = weekly.filter(like="RSI").join(weekly.filter(like="EMA")).reindex(df.index, method="ffill")
+        weekly_raw["EMA_50_W"] = calculate_ema(weekly_raw["close_w"], 50)
+        weekly_raw["EMA_100_W"] = calculate_ema(weekly_raw["close_w"], 100)
+        weekly_raw["EMA_200_W"] = calculate_ema(weekly_raw["close_w"], 200)
+        weekly_raw["RSI_W"] = calculate_rsi(weekly_raw["close_w"], 14)
+
+        weekly_raw.ffill(inplace=True)
+        weekly = weekly_raw.reindex(df.index, method="ffill")
 
         # Monthly indicators
-        monthly = df.resample("ME").agg({
-            "open": "first",
-            "high": "max",
-            "low": "min",
-            "close": "last",
-            "volume": "sum"
-        }).dropna()
+        monthly_raw = df.resample("MS", label="left", closed="left").agg({
+            "open": "first", "high": "max", "low": "min",
+            "close": "last", "volume": "sum"
+        })
 
-        monthly["RSI_M"] = ta.momentum.RSIIndicator(monthly["close"], window=14).rsi()
-        monthly["EMA_50_M"] = ta.trend.EMAIndicator(monthly["close"], window=50).ema_indicator()
-        monthly["EMA_100_M"] = ta.trend.EMAIndicator(monthly["close"], window=100).ema_indicator()
-        monthly["EMA_200_M"] = ta.trend.EMAIndicator(monthly["close"], window=200).ema_indicator()
+        monthly_raw.rename(columns={
+            "open": "open_m", "high": "high_m", "low": "low_m",
+            "close": "close_m", "volume": "volume_m"
+        }, inplace=True)
 
-        monthly_indicators = monthly.filter(like="RSI").join(monthly.filter(like="EMA")).reindex(df.index, method="ffill")
+        monthly_raw["EMA_50_M"] = calculate_ema(monthly_raw["close_m"], 50)
+        monthly_raw["EMA_100_M"] = calculate_ema(monthly_raw["close_m"], 100)
+        monthly_raw["EMA_200_M"] = calculate_ema(monthly_raw["close_m"], 200)
+        monthly_raw["RSI_M"] = calculate_rsi(monthly_raw["close_m"], 14)
 
-        # Combine all
+        monthly_raw.ffill(inplace=True)
+        monthly = monthly_raw.reindex(df.index, method="ffill")
+
+        # Combine all indicators
         final_df = pd.concat([
             df[["open", "high", "low", "close", "volume", "RSI_D", "EMA_50_D", "EMA_100_D", "EMA_200_D"]],
-            weekly_indicators,
-            monthly_indicators
+            weekly[[
+                "RSI_W", "EMA_50_W", "EMA_100_W", "EMA_200_W"
+            ]],
+            monthly[[
+                "RSI_M", "EMA_50_M", "EMA_100_M", "EMA_200_M"
+            ]]
         ], axis=1)
+
+        final_df = final_df.round(2)
 
         return final_df
 
@@ -506,8 +600,10 @@ def update_stock_data(breeze, symbol, save_dir, interval):
 
 def main(user_id):
     """Main trading function - runs once daily with dynamic configuration"""
+    trading_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     print_log("🚀 Starting Dynamic Trading Bot...")
-    print_log(f"📅 Trading Date: {datetime.now().strftime('%Y-%m-%d')}")
+    print_log(f"📅 Trading Date: {trading_time}")
+
     
     try:
         # Step 1: Fetch dynamic configuration from API
@@ -520,7 +616,7 @@ def main(user_id):
         capital_per_stock = config["capital_per_stock"]
         is_live = config["is_live"]
         symbols = config["symbols"]
-        # symbols = ["ALSTD", "BHAELE", "NEULAB", "CAPPOI"]
+        # symbols = ["ZOMLIM"]
         entry_conditions = config["entry_condition"]
         exit_conditions = config["exit_condition"]
         interval = config["interval"]
@@ -590,7 +686,7 @@ def main(user_id):
                 owned_quantity_orders = current_orders.get(symbol, 0)
 
                 # For stocks we DON'T own - check BUY conditions
-                if owned_quantity == 0:
+                if owned_quantity == 0 and owned_quantity_orders == 0:  
                     if check_entry_conditions(latest_row, entry_conditions, symbol):
                         quantity = int(capital_per_stock / closing_price)
                         if quantity > 0:
@@ -602,7 +698,11 @@ def main(user_id):
                             })
 
                 # For stocks we DO own - check SELL conditions
-                else:
+                else:  
+                    if owned_quantity_orders != 0:
+                        print_log(f"{symbol} Already is in order book:: ")
+                    else:
+                        print_log(f"{symbol} Already is in holdings:: ")
                     if check_exit_conditions(latest_row, exit_conditions):
                         sell_signals.append({
                             'symbol': symbol,
@@ -613,6 +713,7 @@ def main(user_id):
 
             except Exception as e:
                 print_log(f"❌ Error processing {symbol}: {e}")
+                print(f"Error Traceback: {traceback.format_exc()}")
                 continue
         # return
         # Step 6: Execute SELL orders first (to free up capital)
@@ -635,6 +736,24 @@ def main(user_id):
                 total_buy_value += signal['investment']
             time.sleep(1)  # Rate limiting
 
+
+        # Save result to DB
+        result = {
+            "status": "success",
+            "execution_time": trading_time,
+            "capital_per_stock": capital_per_stock,
+            "is_live": is_live,
+            "symbols_processed": len(symbols),
+            "current_holdings": len(current_holdings),
+            "current_orders": len(current_orders),
+            "sell_orders": len(sell_signals),
+            "buy_orders": len(buy_signals),
+            "total_sell_value": total_sell_value,
+            "total_buy_value": total_buy_value,
+            "net_flow": total_buy_value - total_sell_value
+        }
+        save_bot_result_to_db(result)
+
         # Step 8: Summary
         print_log("\n" + "="*60)
         print_log("📊 DYNAMIC TRADING SUMMARY")
@@ -643,12 +762,15 @@ def main(user_id):
         print_log(f"💰 Capital per Stock: ₹{capital_per_stock:,}")
         print_log(f"📈 Symbols Processed: {len(symbols)}")
         print_log(f"📊 Current Holdings: {len(current_holdings)} stocks")
+        print_log(f"📊 Current Orders: {len(current_orders)} stocks")
         print_log(f"🔴 Sell Orders: {len(sell_signals)} (₹{total_sell_value:,.2f})")
         print_log(f"🟢 Buy Orders: {len(buy_signals)} (₹{total_buy_value:,.2f})")
         print_log(f"💹 Net Flow: ₹{total_buy_value - total_sell_value:,.2f}")
         print_log(f"🔄 Mode: {'LIVE TRADING' if is_live else 'DRY RUN'}")
         print_log("="*60)
         print_log("✅ Dynamic trading cycle completed!")
+
+        print(json.dumps(result))
 
     except Exception as e:
         print_log(f"❌ Fatal error in trading bot: {e}")
@@ -664,5 +786,4 @@ if __name__ == "__main__":
         main(user_id)
     else:
         print_log("No user ID argument passed.")
-    
-    
+        print(f"No user ID argument passed: {user_id}")

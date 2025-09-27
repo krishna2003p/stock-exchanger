@@ -22,10 +22,12 @@ export default function Home() {
       <div className="relative z-10 w-full flex flex-col md:flex-row items-center justify-between gap-y-12 md:gap-x-10 max-w-7xl mx-auto py-10">
         {/* Mobile: Banner image at the top */}
         <div className="block md:hidden w-full flex justify-center">
-          <img
+          <Image
             src="/home/banner_img-2.png"
             alt="Banner"
-            className="h-80 w-auto drop-shadow-xl"
+            className="drop-shadow-xl"
+            width={320}
+            height={80}
           />
         </div>
 
@@ -66,15 +68,17 @@ export default function Home() {
 
         {/* Right Column: main banner and cube, both hidden on mobile */}
         <div className="flex-1 flex-col items-center md:items-end justify-between hidden md:flex">
-          <img
+          <Image
             src="/home/banner_img-2.png"
             alt="Banner"
-            className="h-72 sm:h-96 md:h-[32rem] w-auto drop-shadow-xl animate-bounce mb-6"
+            className="sm:h-96 md:h-[32rem] w-auto drop-shadow-xl animate-bounce mb-6"
+            width={400} height={160}
           />
-          <img
+          <Image
             src="/home/cube.png"
             alt="Cube"
-            className="h-12 w-12 animate-spin ms-5"
+            className="animate-spin ms-5"
+            width={48} height={48}
           />
         </div>
       </div>

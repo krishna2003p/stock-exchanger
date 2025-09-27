@@ -57,48 +57,79 @@ model vendors {
   updated_at    DateTime? @default(now()) @db.DateTime(0)
 }
 
-model BotConfig {
-  id              Int              @unique(map: "id_UNIQUE") @default(autoincrement())
-  userId          Int              @unique
+model bots {
+  id         Int       @id @unique(map: "id_UNIQUE") @default(autoincrement())
+  user_id    Int       @unique(map: "user_id_UNIQUE")
+  name       String    @db.VarChar(45)
+  bot_img    String?   @db.VarChar(45)
+  password   String?   @default("NA") @db.VarChar(256)
+  status     String?   @default("Inactive") @db.VarChar(45)
+  price      Int?      @default(0)
+  returns    Int?      @default(0)
+  risk       Int?      @default(0)
+  renew_date DateTime? @db.DateTime(0)
+  intro      String?   @db.LongText
+}
+
+model bot_result {
+  id                Int       @id @unique(map: "id_UNIQUE") @default(autoincrement())
+  bot_id            Int       @unique(map: "bot_id_UNIQUE")
+  execution_time    DateTime? @db.DateTime(0)
+  symbols_processed Int?
+  current_holdings  Int?
+  current_orders    Int?
+  buy_orders        Int?
+  sell_orders       Int?
+  total_buy_value   Float?    @db.Float
+  total_sell_value  Float?    @db.Float
+  net_flow          Float?    @db.Float
+  is_live           Int?      @db.TinyInt
+  capital_per_stock Int?
+  status            String?   @db.VarChar(45)
+}
+
+model bot_config {
+  id              Int               @unique(map: "id_UNIQUE") @default(autoincrement())
+  bot_id          Int               @unique(map: "BotConfig_userId_key")
+  user            String            @db.VarChar(45)
   sessionToken    String?
   capitalPerStock Float
   isLive          Boolean
   interval        String
-  user            String           @db.VarChar(45)
-  entryConditions EntryCondition[]
-  exitConditions  ExitCondition[]
-  symbols         Symbol[]
+  entry_condition entry_condition[]
+  exit_condition  exit_condition[]
+  symbols         symbols[]
 }
 
-model Symbol {
-  id          Int        @unique(map: "id_UNIQUE") @default(autoincrement())
-  name        String
-  botConfigId Int?
-  botConfig   BotConfig? @relation(fields: [botConfigId], references: [id])
-
-  @@index([botConfigId], map: "Symbol_botConfigId_fkey")
-}
-
-model EntryCondition {
-  id          Int        @unique(map: "id_UNIQUE") @default(autoincrement())
+model entry_condition {
+  id          Int         @unique(map: "id_UNIQUE") @default(autoincrement())
   left        String
   operator    String
   right       String
   type        String
   botConfigId Int?
-  botConfig   BotConfig? @relation(fields: [botConfigId], references: [id])
+  bot_config  bot_config? @relation(fields: [botConfigId], references: [id], map: "EntryCondition_botConfigId_fkey")
 
   @@index([botConfigId], map: "EntryCondition_botConfigId_fkey")
 }
 
-model ExitCondition {
-  id          Int        @unique(map: "id_UNIQUE") @default(autoincrement())
+model exit_condition {
+  id          Int         @unique(map: "id_UNIQUE") @default(autoincrement())
   left        String
   operator    String
   right       String
   type        String
   botConfigId Int?
-  botConfig   BotConfig? @relation(fields: [botConfigId], references: [id])
+  bot_config  bot_config? @relation(fields: [botConfigId], references: [id], map: "ExitCondition_botConfigId_fkey")
 
   @@index([botConfigId], map: "ExitCondition_botConfigId_fkey")
+}
+
+model symbols {
+  id          Int         @unique(map: "id_UNIQUE") @default(autoincrement())
+  name        String
+  botConfigId Int?
+  bot_config  bot_config? @relation(fields: [botConfigId], references: [id], map: "Symbol_botConfigId_fkey")
+
+  @@index([botConfigId], map: "Symbol_botConfigId_fkey")
 }

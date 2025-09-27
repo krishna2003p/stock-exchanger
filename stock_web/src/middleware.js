@@ -13,7 +13,7 @@ export async function middleware(request) {
     console.log("Middleware executed for: ", request.url);
     const { pathname } = request.nextUrl;
 
-    const allowedPaths = ['/api/signIn', '/api/signUp', '/api/signOut', '/api/tokenverify', '/api/contacts','/api/webhooks/facebook', '/api/run_bot'];
+    const allowedPaths = ['/api/signIn', '/api/signUp', '/api/signOut', '/api/tokenverify', '/api/contacts','/api/webhooks/facebook'];
     const allowedPathsUI = ['/join-with-us','/'];
 
     const headers = new Headers(request.headers);
@@ -34,11 +34,10 @@ export async function middleware(request) {
     // Handle API requests requiring Bearer token authorization
     if (pathname.startsWith('/api')) {
         const cookie = request.headers.get('cookie') || '';
-        console.log("Coookiee data:: ",cookie)
         const tokenCookie = cookie.split('; ').find(c => c.startsWith('token='));
 
         if (!tokenCookie) {
-        return NextResponse.json({ status: 'Unauthorized' }, { status: 401, headers});
+            return NextResponse.json({ status: 'Unauthorized' }, { status: 401, headers });
         }
 
         const token = tokenCookie.split('=')[1];
@@ -60,8 +59,10 @@ export async function middleware(request) {
 
     // Check authentication for UI routes
     if (!(allowedPathsUI.some(path => pathname.startsWith(path)) && pathname == '/')) {
-        const token = request.cookies.get('token');
-        console.log("Token found: ", token);
+         const cookie = request.headers.get('cookie') || '';
+        console.log("Coookiee data:: ",cookie)
+        const tokenCookie = cookie.split('; ').find(c => c.startsWith('token='));
+        const token = tokenCookie ? { value: tokenCookie.split('=')[1] } : null;
         if (!token) {
             // Prevent redirection loop by checking if user is already on the login page
             if (pathname !== '/join-with-us') {
@@ -104,5 +105,5 @@ export async function middleware(request) {
 }
 
 export const config = {
-    matcher: ['/api/:path*', '/dashboard/:path*', ],
+    matcher: ['/api/:path*', '/user-dashboard/:path*', ],
 };

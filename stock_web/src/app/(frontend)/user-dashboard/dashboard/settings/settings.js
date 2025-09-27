@@ -176,7 +176,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#fafafa]">
+    <div className="min-h-screen bg-[#fafafa] text-black">
       <div className="mx-18 p-6">
         <div className="grid grid-cols-12 gap-6">
           {/* Sidebar omitted for brevity */}
@@ -257,7 +257,7 @@ export default function SettingsPage() {
                   {loading ? (
                     <span className="text-gray-400">Uploading...</span>
                   ) : avatarUrl ? (
-                    <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                    <Image src={avatarUrl} alt="Avatar" width={80} height={80} className="object-cover" />
                   ) : (
                     <IoCameraOutline className="text-gray-400" size={26} />
                   )}

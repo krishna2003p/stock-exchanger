@@ -1,4 +1,5 @@
 import { useState } from "react";
+import Image from "next/image";
 
 // Dummy data for demonstration
 const watchlists = [
@@ -74,9 +75,9 @@ export default function WatchlistPage() {
                     onClick={() => setActiveStock(stock)}
                   >
                     <td className="flex items-center gap-2 px-3 py-2">
-                      <img src={stock.logo} alt={stock.name} className="w-6 h-6" />
+                      <Image src={stock.logo} alt={stock.name} width={24} height={24} className="w-6 h-6" />
                       <span>{stock.name}</span>
-                      <img src={stock.miniChart} alt="" className="w-16 h-7 ml-2" />
+                      <Image src={stock.miniChart} alt="" width={64} height={28} className="w-16 h-7 ml-2" />
                     </td>
                     <td className="px-3 py-2">{stock.qty}</td>
                     <td className="px-3 py-2">${stock.price}</td>
@@ -153,7 +154,7 @@ export default function WatchlistPage() {
             <div className="flex flex-col gap-3">
               <div className="flex items-center justify-between border rounded-lg p-2 hover:bg-gray-50">
                 <div className="flex items-center gap-2">
-                  <img src="/logos/nvidia.png" alt="Nvidia" className="w-8 h-8" />
+                  <Image src="/logos/nvidia.png" alt="Nvidia" width={32} height={32} className="w-8 h-8" />
                   <div>
                     <div className="text-sm font-medium">Nvidia</div>
                     <div className="text-xs text-gray-400">Current Value</div>
@@ -161,12 +162,12 @@ export default function WatchlistPage() {
                 </div>
                 <div className="flex flex-col items-end">
                   <span className="text-green-600 font-medium">$203.65 <span className="text-xs">+5.63</span></span>
-                  <img src="/charts/mini-up.svg" alt="" className="w-10 h-5"/>
+                  <Image src="/charts/mini-up.svg" alt="" width={40} height={20} className="w-10 h-5"/>
                 </div>
               </div>
               <div className="flex items-center justify-between border rounded-lg p-2 hover:bg-gray-50">
                 <div className="flex items-center gap-2">
-                  <img src="/logos/meta.png" alt="Meta" className="w-8 h-8" />
+                  <Image src="/logos/meta.png" alt="Meta" width={32} height={32} className="w-8 h-8" />
                   <div>
                     <div className="text-sm font-medium">Meta</div>
                     <div className="text-xs text-gray-400">Current Value</div>
@@ -174,7 +175,7 @@ export default function WatchlistPage() {
                 </div>
                 <div className="flex flex-col items-end">
                   <span className="text-red-500 font-medium">$151.74</span>
-                  <img src="/charts/mini-down.svg" alt="" className="w-10 h-5"/>
+                  <Image src="/charts/mini-down.svg" alt="" width={40} height={20} className="w-10 h-5"/>
                 </div>
               </div>
             </div>
